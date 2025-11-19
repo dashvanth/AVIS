@@ -1,0 +1,3 @@
+DB_HOST = "localhost"
+DB_USER = "AVIS"
+DB_PASSWORD = "AVIS@0606"

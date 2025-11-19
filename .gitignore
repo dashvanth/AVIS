@@ -1,0 +1,27 @@
+# ------------------------------------------------
+# 1. PYTHON CACHE AND COMPILED FILES
+# ------------------------------------------------
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+tempCodeRunnerFile.py
+appconfig
+
+# ------------------------------------------------
+# 2. LARGE MEDIA FILES (Website Previews, Images, Videos)
+# We KEEP the small icons needed for the Python GUI
+# ------------------------------------------------
+# Ignore the entire web_images folder (contains large .gif, .webp, .png files)
+website/web_images/
+
+# ------------------------------------------------
+# 3. BUILD/INSTALLATION/TOOLS FILES
+# ------------------------------------------------
+# Ignore Node modules and lockfiles for web development
+node_modules/
+package-lock.json
+
+# Ignore system-specific files
+.vscode/
+Thumbs.db
