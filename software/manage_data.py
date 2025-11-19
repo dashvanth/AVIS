@@ -9,6 +9,7 @@ import numpy as np
 import sys
 
 # --- Configuration ---
+#configuration
 # FIX: Try importing directly first (for when running software/main.py)
 try:
     from db_config import DB_HOST, DB_USER, DB_PASSWORD
