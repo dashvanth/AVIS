@@ -1,7 +1,0 @@
-Pillow
-requests>=2.0
-numpy
-tabulate
-matplotlib
-customtkinter
-mysql.connector
