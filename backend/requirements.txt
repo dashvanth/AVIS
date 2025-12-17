@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+pandas
+numpy
+scikit-learn
+statsmodels
+sqlmodel
+python-multipart
+pydantic-settings
+passlib[bcrypt]
+python-jose[cryptography]
+lxml
+openpyxl

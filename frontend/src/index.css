@@ -1,0 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-avis-primary: #0B0F14;
+  --color-avis-secondary: #111827;
+  --color-avis-glass: rgba(255, 255, 255, 0.06);
+  --color-avis-border: rgba(255, 255, 255, 0.08);
+  --color-avis-text-primary: #E5E7EB;
+  --color-avis-text-secondary: #9CA3AF;
+  --color-avis-accent-indigo: #6366F1;
+  --color-avis-accent-cyan: #22D3EE;
+  --color-avis-accent-success: #A3E635;
+
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --animate-blob: blob 7s infinite;
+  --animate-fade-in-up: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+
+  @keyframes blob {
+    0% { transform: translate(0px, 0px) scale(1); }
+    33% { transform: translate(30px, -50px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.9); }
+    100% { transform: translate(0px, 0px) scale(1); }
+  }
+  @keyframes fadeInUp {
+     0% { opacity: 0; transform: translateY(20px); }
+     100% { opacity: 1; transform: translateY(0); }
+  }
+}
+
+body {
+  background-color: var(--color-avis-primary);
+  color: var(--color-avis-text-primary);
+  font-family: var(--font-sans);
+}
