@@ -1,0 +1,41 @@
+# Systems and IDEs
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Dependencies (Frontend & Backend)
+node_modules/
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*.so
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# Builds
+dist/
+build/
+coverage/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+backend/database.db
+
+# File Uploads / Data
+uploads/
+backend/uploads/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Agent Artifacts
+.gemini/
