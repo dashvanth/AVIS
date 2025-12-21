@@ -95,20 +95,6 @@ export const deleteDashboard = async (id: number): Promise<void> => {
   await api.delete(`/dashboards/${id}`);
 };
 
-export const generateForecast = async (
-  datasetId: number,
-  dateCol: string,
-  valueCol: string,
-  periods: number
-): Promise<any[]> => {
-  const response = await api.post<any[]>(`/forecast/${datasetId}`, {
-    date_col: dateCol,
-    value_col: valueCol,
-    periods,
-  });
-  return response.data;
-};
-
 export const getInsights = async (datasetId: number): Promise<any[]> => {
   const response = await api.get<any[]>(`/insights/${datasetId}`);
   return response.data;
@@ -124,5 +110,39 @@ export const sendChatMessage = async (
   );
   return response.data;
 };
+
+export const login = async (email: string, password: string): Promise<any> => {
+  const formData = new URLSearchParams();
+  formData.append("username", email); // OAuth2 expects 'username' field
+  formData.append("password", password);
+
+  const response = await api.post("/auth/login", formData, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+  });
+  return response.data;
+};
+
+export const signup = async (
+  email: string,
+  password: string,
+  fullName: string
+): Promise<any> => {
+  const response = await api.post("/auth/register", {
+    email,
+    password,
+    full_name: fullName,
+  });
+  return response.data;
+};
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 export default api;
