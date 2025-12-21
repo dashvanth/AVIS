@@ -1,104 +1,162 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { X, FileText, Activity } from 'lucide-react';
+// frontend/src/components/DataPreviewTable.tsx
+import React, { useState, useEffect } from "react";
+import { getDatasetPreview } from "../services/api";
+import {
+  Activity,
+  AlertCircle,
+  FileText,
+  Binary,
+  Hash,
+  Type,
+  ShieldCheck,
+} from "lucide-react";
+import { motion } from "framer-motion";
 
 interface DataPreviewTableProps {
-    datasetId: number | null;
-    onClose: () => void;
+  datasetId: number;
 }
 
-const DataPreviewTable: React.FC<DataPreviewTableProps> = ({ datasetId, onClose }) => {
-    const [data, setData] = useState<any[]>([]);
-    const [columns, setColumns] = useState<string[]>([]);
-    const [colTypes, setColTypes] = useState<Record<string, string>>({});
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+const DataPreviewTable: React.FC<DataPreviewTableProps> = ({ datasetId }) => {
+  const [data, setData] = useState<any[]>([]);
+  const [columns, setColumns] = useState<string[]>([]);
+  const [colTypes, setColTypes] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (datasetId) {
-            setLoading(true);
-            setError(null);
-            // Assuming base URL is properly set in axios global or we use relative path if proxied.
-            // Using direct full path for now based on previous api.ts
-            axios.get(`http://localhost:8000/api/datasets/${datasetId}/preview`)
-                .then(res => {
-                    setData(res.data.data);
-                    setColumns(res.data.columns);
-                    setColTypes(res.data.dtypes);
-                    setLoading(false);
-                })
-                .catch(err => {
-                    console.error("Failed to fetch preview", err);
-                    setError("Failed to load data preview.");
-                    setLoading(false);
-                });
-        }
-    }, [datasetId]);
+  useEffect(() => {
+    if (datasetId) {
+      setLoading(true);
+      setError(null);
+      getDatasetPreview(datasetId)
+        .then((res) => {
+          // Adapt to the standard API response structure
+          setData(res.data || []);
+          setColumns(res.columns || []);
+          setColTypes(res.dtypes || {});
+        })
+        .catch((err) => {
+          console.error("Verification Handshake Failed", err);
+          setError("System failed to retrieve relational preview.");
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [datasetId]);
 
-    if (!datasetId) return null;
+  const getTypeIcon = (type: string) => {
+    const lowerType = type.toLowerCase();
+    if (lowerType.includes("int") || lowerType.includes("float"))
+      return <Hash className="w-3 h-3 text-avis-accent-cyan" />;
+    if (lowerType.includes("object") || lowerType.includes("str"))
+      return <Type className="w-3 h-3 text-avis-accent-indigo" />;
+    return <Binary className="w-3 h-3 text-avis-accent-success" />;
+  };
 
+  if (loading)
     return (
-        <div className="fixed inset-0 z-50 flex justify-end">
-            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose}></div>
-
-            <div className="relative w-full max-w-4xl bg-avis-primary border-l border-avis-border shadow-2xl h-full flex flex-col animate-in slide-in-from-right duration-300">
-                <div className="flex justify-between items-center p-6 border-b border-avis-border bg-avis-secondary/50">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-avis-accent-indigo/20 rounded-lg text-avis-accent-indigo">
-                            <FileText className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <h3 className="text-xl font-bold text-avis-text-primary">Data Preview</h3>
-                            <p className="text-sm text-avis-text-secondary">First 100 rows</p>
-                        </div>
-                    </div>
-                    <button onClick={onClose} className="p-2 hover:bg-avis-border rounded-full text-avis-text-secondary transition-colors">
-                        <X className="w-6 h-6" />
-                    </button>
-                </div>
-
-                <div className="flex-1 overflow-auto p-6">
-                    {loading ? (
-                        <div className="flex flex-col items-center justify-center h-full text-avis-accent-indigo">
-                            <Activity className="w-10 h-10 mb-4 animate-spin" />
-                            <p>Loading data...</p>
-                        </div>
-                    ) : error ? (
-                        <div className="flex items-center justify-center h-full text-red-400">
-                            {error}
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto border border-avis-border rounded-xl">
-                            <table className="min-w-full divide-y divide-avis-border bg-avis-secondary">
-                                <thead className="bg-avis-primary">
-                                    <tr>
-                                        {columns.map(col => (
-                                            <th key={col} className="px-6 py-4 text-left text-xs font-mono font-bold text-avis-text-secondary uppercase tracking-wider whitespace-nowrap group relative">
-                                                {col}
-                                                <div className="absolute top-0 right-0 h-full w-1 bg-gradient-to-b from-transparent via-avis-border to-transparent opacity-0 group-hover:opacity-100"></div>
-                                                <div className="text-[10px] text-avis-accent-cyan normal-case mt-1">{colTypes[col]}</div>
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-avis-border">
-                                    {data.map((row, idx) => (
-                                        <tr key={idx} className="hover:bg-avis-primary transition-colors">
-                                            {columns.map(col => (
-                                                <td key={col} className="px-6 py-3 text-sm text-avis-text-primary whitespace-nowrap font-mono max-w-xs truncate">
-                                                    {row[col] !== null ? String(row[col]) : <span className="text-avis-text-secondary italic">null</span>}
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
+      <div className="flex flex-col items-center justify-center py-24 bg-avis-primary/20 rounded-[2rem]">
+        <Activity className="w-12 h-12 text-avis-accent-indigo animate-spin mb-4" />
+        <p className="text-xs font-bold text-avis-text-secondary uppercase tracking-[0.2em]">
+          Synchronizing relational matrix...
+        </p>
+      </div>
     );
+
+  if (error)
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-3 bg-red-500/5 rounded-[2rem] border border-red-500/20">
+        <AlertCircle className="w-8 h-8 text-red-400" />
+        <p className="text-sm font-medium text-red-200">{error}</p>
+      </div>
+    );
+
+  return (
+    <div className="w-full bg-avis-secondary/30 rounded-[2rem] border border-avis-border/40 overflow-hidden shadow-2xl">
+      {/* Table Header / Characterization Info */}
+      <div className="p-5 border-b border-avis-border/40 bg-avis-primary/30 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <ShieldCheck className="w-4 h-4 text-avis-accent-success" />
+          <span className="text-[10px] font-black text-avis-text-secondary uppercase tracking-widest">
+            Inferred Schema Verified
+          </span>
+        </div>
+        <span className="text-[9px] font-mono text-avis-text-secondary/40">
+          PREVIEW_NODE_ACTIVE
+        </span>
+      </div>
+
+      <div className="overflow-x-auto custom-scrollbar">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-avis-primary/50">
+              {columns.map((col) => (
+                <th
+                  key={col}
+                  className="px-6 py-5 text-left group border-b border-avis-border/40 min-w-[150px]"
+                >
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-black text-white uppercase tracking-tight truncate">
+                      {col}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <div className="p-1 bg-avis-primary rounded-md border border-avis-border/60">
+                        {getTypeIcon(colTypes[col])}
+                      </div>
+                      <span className="text-[9px] font-mono font-bold text-avis-text-secondary uppercase opacity-70">
+                        {colTypes[col]}
+                      </span>
+                    </div>
+                  </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-avis-border/20">
+            {data.map((row, idx) => (
+              <motion.tr
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: idx * 0.03 }}
+                key={idx}
+                className="hover:bg-avis-accent-indigo/5 transition-colors"
+              >
+                {columns.map((col) => (
+                  <td key={col} className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`text-[11px] font-mono ${
+                        row[col] === null || row[col] === undefined
+                          ? "text-avis-accent-amber italic font-bold"
+                          : "text-avis-text-secondary"
+                      }`}
+                    >
+                      {row[col] !== null && row[col] !== undefined
+                        ? String(row[col])
+                        : "NULL_VOID"}
+                    </span>
+                  </td>
+                ))}
+              </motion.tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Legend Footer for Radical Transparency */}
+      <div className="p-4 bg-avis-primary/40 border-t border-avis-border/40 flex gap-6">
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-avis-accent-indigo" />
+          <span className="text-[9px] font-bold text-avis-text-secondary uppercase">
+            Relational Data
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-avis-accent-amber" />
+          <span className="text-[9px] font-bold text-avis-text-secondary uppercase">
+            Anomaly (Null) Detected
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default DataPreviewTable;

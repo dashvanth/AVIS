@@ -1,3 +1,4 @@
+// frontend/src/services/api.ts
 import axios from "axios";
 import type { Dataset, Dashboard } from "../types";
 
@@ -10,25 +11,28 @@ const api = axios.create({
   },
 });
 
+// --- Dataset Ingestion & Orientation (Functionality 1 & 2) ---
+
 export const uploadDataset = async (file: File): Promise<Dataset> => {
   const formData = new FormData();
   formData.append("file", file);
   const response = await api.post<Dataset>("/datasets/upload", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
+    headers: { "Content-Type": "multipart/form-data" },
   });
   return response.data;
 };
-
 export const previewDataset = async (file: File): Promise<any> => {
   const formData = new FormData();
   formData.append("file", file);
   const response = await api.post<any>("/datasets/preview", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
+    headers: { "Content-Type": "multipart/form-data" },
   });
+  return response.data;
+};
+
+// New: Fetches preview data for the Gatekeeper stage (Functionality 2)
+export const getDatasetPreview = async (id: number): Promise<any> => {
+  const response = await api.get(`/datasets/${id}/preview`);
   return response.data;
 };
 
@@ -40,6 +44,8 @@ export const getDatasets = async (): Promise<Dataset[]> => {
 export const deleteDataset = async (id: number): Promise<void> => {
   await api.delete(`/datasets/${id}`);
 };
+
+// --- Guided Exploratory Data Analysis (Functionality 3) ---
 
 export const getEDASummary = async (id: number): Promise<any> => {
   const response = await api.get(`/eda/${id}/summary`);
@@ -55,6 +61,8 @@ export const getCorrelationMatrix = async (id: number): Promise<any> => {
   const response = await api.get(`/eda/${id}/correlation`);
   return response.data;
 };
+
+// --- Interactive Visualization (Functionality 4) ---
 
 export const getChartData = async (
   id: number,
@@ -95,6 +103,8 @@ export const deleteDashboard = async (id: number): Promise<void> => {
   await api.delete(`/dashboards/${id}`);
 };
 
+// --- Context-Aware AI Assistance (Functionality 5) ---
+
 export const getInsights = async (datasetId: number): Promise<any[]> => {
   const response = await api.get<any[]>(`/insights/${datasetId}`);
   return response.data;
@@ -110,6 +120,8 @@ export const sendChatMessage = async (
   );
   return response.data;
 };
+
+// --- Secure User Management (Functionality 7) ---
 
 export const login = async (email: string, password: string): Promise<any> => {
   const formData = new URLSearchParams();
@@ -137,6 +149,7 @@ export const signup = async (
   return response.data;
 };
 
+// --- Security Interceptor ---
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {

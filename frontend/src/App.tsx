@@ -15,7 +15,6 @@ import DatasetsPage from "./pages/DatasetsPage";
 import EDADashboard from "./pages/EDADashboard";
 import VisualizationDashboard from "./pages/VisualizationDashboard";
 import InsightsDashboard from "./pages/InsightsDashboard";
-import DashboardBuilderPage from "./pages/DashboardBuilderPage";
 import ChatDashboard from "./pages/ChatDashboard"; // Added missing import
 import AuthPage from "./pages/AuthPage";
 
@@ -34,7 +33,6 @@ function App() {
         <Route element={<GlobalLayout />}>
           <Route path="/app" element={<DashboardHome />} />
           <Route path="/app/datasets" element={<DatasetsPage />} />
-          <Route path="/app/builder" element={<DashboardBuilderPage />} />
         </Route>
 
         {/* Guided Analysis Workspace (Sidebar Layout) */}
