@@ -12,12 +12,20 @@ def upload_dataset(
     file: UploadFile = File(...),
     session: Session = Depends(get_session)
 ):
+    """
+    Handles multi-format uploads and returns the dataset with a 
+    transparency 'processing_log'.
+    """
     return process_uploaded_file(file, session)
 
 @router.post("/preview")
 def preview_dataset_endpoint(
     file: UploadFile = File(...)
 ):
+    """
+    Provides an immediate summary (Orientation) before the user 
+    finalizes the upload.
+    """
     from app.services.dataset_service import analyze_file_preview
     return analyze_file_preview(file)
 
@@ -39,61 +47,59 @@ def delete_dataset(dataset_id: int, session: Session = Depends(get_session)):
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
     
-    # 1. Delete file from disk
     import os
     if os.path.exists(dataset.filepath):
         try:
             os.remove(dataset.filepath)
         except Exception:
-            pass # Continue to delete from DB even if file deletion fails
+            pass 
 
-    # 2. Delete from DB
     session.delete(dataset)
     session.commit()
     return {"ok": True}
 
 @router.get("/{dataset_id}/preview")
-def preview_dataset(dataset_id: int, session: Session = Depends(get_session)):
+def preview_existing_dataset(dataset_id: int, session: Session = Depends(get_session)):
+    """
+    Retrieves preview data and dtypes for existing datasets in MySQL.
+    Supports CSV, Excel, JSON, and XML.
+    """
     dataset = session.get(Dataset, dataset_id)
-    if not dataset:
-        raise HTTPException(status_code=404, detail="Dataset not found")
+    if not dataset or not dataset.filepath:
+        raise HTTPException(status_code=404, detail="Dataset or file not found")
     
     import os
     if not os.path.exists(dataset.filepath):
-         raise HTTPException(status_code=404, detail=f"File not found on server at {dataset.filepath}")
+         raise HTTPException(status_code=404, detail=f"File missing at {dataset.filepath}")
 
     try:
         import pandas as pd
         import numpy as np
 
+        # Multi-format Reading Logic
         if dataset.file_type == 'csv':
             try:
                 df = pd.read_csv(dataset.filepath, nrows=100)
             except UnicodeDecodeError:
-                # Fallback for non-UTF-8 files
                 df = pd.read_csv(dataset.filepath, nrows=100, encoding='latin-1')
         elif dataset.file_type in ['xlsx', 'xls']:
             df = pd.read_excel(dataset.filepath, nrows=100)
         elif dataset.file_type == 'json':
-            df = pd.read_json(dataset.filepath)
-            df = df.head(100)
+            df = pd.read_json(dataset.filepath).head(100)
         elif dataset.file_type == 'xml':
-            df = pd.read_xml(dataset.filepath)
-            df = df.head(100)
+            df = pd.read_xml(dataset.filepath).head(100)
         else:
-            raise HTTPException(status_code=400, detail=f"Unsupported file type: {dataset.file_type}")
+            raise HTTPException(status_code=400, detail="Unsupported format")
         
-        # Data Sanitization for JSON Response
-        # 1. Replace Infinity with None
+        # Sanitize for JSON (Handling NaN/Infinity)
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
-        # 2. Replace NaN with None (standard JSON null)
         df = df.where(pd.notnull(df), None)
         
         return {
             "columns": list(df.columns),
             "data": df.to_dict(orient="records"),
-            "dtypes": df.dtypes.astype(str).to_dict()
+            "dtypes": df.dtypes.astype(str).to_dict(),
+            "processing_log": dataset.processing_log # Include the log for the console
         }
     except Exception as e:
-        print(f"Preview Error for {dataset.filename}: {str(e)}") # Log to console
-        raise HTTPException(status_code=500, detail=f"Error loading preview: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Preview failed: {str(e)}")
