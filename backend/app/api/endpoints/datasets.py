@@ -1,38 +1,49 @@
+# backend/app/api/endpoints/datasets.py
 from typing import List
+import os
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from sqlmodel import Session, select
 from app.core.database import get_session
 from app.models.dataset import Dataset
-from app.services.dataset_service import process_uploaded_file
+from app.services.dataset_service import process_uploaded_file, analyze_file_preview
 
 router = APIRouter()
 
 @router.post("/upload", response_model=Dataset)
-def upload_dataset(
+async def upload_dataset(
     file: UploadFile = File(...),
     session: Session = Depends(get_session)
 ):
     """
-    Handles multi-format uploads and returns the dataset with a 
-    transparency 'processing_log'.
+    Handles multi-format uploads (CSV, Excel, JSON, XML) and returns 
+    the dataset with the newly implemented transparency 'processing_log'.
     """
-    return process_uploaded_file(file, session)
+    try:
+        # Calling the service to handle disk I/O and MySQL persistence
+        dataset = process_uploaded_file(file, session)
+        return dataset
+    except Exception as e:
+        # Log the detailed error to your terminal for Task 2.1 debugging
+        print(f"CRITICAL UPLOAD ERROR: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/preview")
-def preview_dataset_endpoint(
+async def preview_dataset_endpoint(
     file: UploadFile = File(...)
 ):
     """
-    Provides an immediate summary (Orientation) before the user 
-    finalizes the upload.
+    Provides an immediate orientation summary before final upload.
+    This fulfills the 'Automatic Orientation' requirement.
     """
-    from app.services.dataset_service import analyze_file_preview
-    return analyze_file_preview(file)
+    try:
+        return analyze_file_preview(file)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Preview Orientation Failed: {str(e)}")
 
 @router.get("/", response_model=List[Dataset])
 def read_datasets(session: Session = Depends(get_session)):
-    datasets = session.exec(select(Dataset)).all()
-    return datasets
+    """Retrieves all datasets registered in MySQL."""
+    return session.exec(select(Dataset)).all()
 
 @router.get("/{dataset_id}", response_model=Dataset)
 def read_dataset(dataset_id: int, session: Session = Depends(get_session)):
@@ -47,12 +58,12 @@ def delete_dataset(dataset_id: int, session: Session = Depends(get_session)):
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
     
-    import os
+    # 1. Clean up file from disk before removing DB entry
     if os.path.exists(dataset.filepath):
         try:
             os.remove(dataset.filepath)
-        except Exception:
-            pass 
+        except Exception as e:
+            print(f"File deletion warning: {e}")
 
     session.delete(dataset)
     session.commit()
@@ -61,22 +72,21 @@ def delete_dataset(dataset_id: int, session: Session = Depends(get_session)):
 @router.get("/{dataset_id}/preview")
 def preview_existing_dataset(dataset_id: int, session: Session = Depends(get_session)):
     """
-    Retrieves preview data and dtypes for existing datasets in MySQL.
-    Supports CSV, Excel, JSON, and XML.
+    Retrieves preview data and transparency logs for existing datasets.
+    Supports radical transparency by returning the 'processing_log'.
     """
     dataset = session.get(Dataset, dataset_id)
     if not dataset or not dataset.filepath:
         raise HTTPException(status_code=404, detail="Dataset or file not found")
     
-    import os
     if not os.path.exists(dataset.filepath):
-         raise HTTPException(status_code=404, detail=f"File missing at {dataset.filepath}")
+         raise HTTPException(status_code=404, detail=f"File missing at path")
 
     try:
         import pandas as pd
         import numpy as np
 
-        # Multi-format Reading Logic
+        # Support for multi-format reading (Requirement #1)
         if dataset.file_type == 'csv':
             try:
                 df = pd.read_csv(dataset.filepath, nrows=100)
@@ -91,7 +101,7 @@ def preview_existing_dataset(dataset_id: int, session: Session = Depends(get_ses
         else:
             raise HTTPException(status_code=400, detail="Unsupported format")
         
-        # Sanitize for JSON (Handling NaN/Infinity)
+        # Sanitize data for JSON response (NaN/Inf to None)
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
         df = df.where(pd.notnull(df), None)
         
@@ -99,7 +109,7 @@ def preview_existing_dataset(dataset_id: int, session: Session = Depends(get_ses
             "columns": list(df.columns),
             "data": df.to_dict(orient="records"),
             "dtypes": df.dtypes.astype(str).to_dict(),
-            "processing_log": dataset.processing_log # Include the log for the console
+            "processing_log": dataset.processing_log # Crucial for Task 2.1 Transparency
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Preview failed: {str(e)}")

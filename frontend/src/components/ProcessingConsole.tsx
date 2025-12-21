@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Terminal, Zap, CheckCircle2 } from "lucide-react";
-import { ProcessingStep } from "../types";
-
+import type { ProcessingStep } from "../types";
 interface ProcessingConsoleProps {
   logJson?: string;
 }

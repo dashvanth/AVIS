@@ -1,5 +1,6 @@
-// frontend/src/types/index.ts
+// frontend/crs / types / index.ts;
 
+// Ensure this EXACT block is at the top of the file
 export interface ProcessingStep {
   action: string;
   count: number;
@@ -15,7 +16,6 @@ export interface Dataset {
   column_count: number;
   file_size_bytes: number;
   analyzed: boolean;
-  // NEW: The Line-by-Line Log from the backend
   processing_log?: string;
   created_at: string;
 }
