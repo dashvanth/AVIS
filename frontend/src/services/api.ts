@@ -1,6 +1,13 @@
 // frontend/src/services/api.ts
 import axios from "axios";
-import type { Dataset, Dashboard } from "../types";
+import type {
+  Dataset,
+  Dashboard,
+  EDASummary,
+  CorrelationData,
+  MissingValue,
+  PreviewData,
+} from "../types";
 
 const API_URL = "http://localhost:8000/api";
 
@@ -13,57 +20,81 @@ const api = axios.create({
 
 // --- Dataset Ingestion & Orientation (Functionality 1 & 2) ---
 
+/**
+ * Uploads a raw file for ingestion and persistent audit logging.
+ */
 export const uploadDataset = async (file: File): Promise<Dataset> => {
   const formData = new FormData();
   formData.append("file", file);
-  const response = await api.post<Dataset>("/datasets/upload", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-  return response.data;
-};
-export const previewDataset = async (file: File): Promise<any> => {
-  const formData = new FormData();
-  formData.append("file", file);
-  const response = await api.post<any>("/datasets/preview", formData, {
+  // relative path ensures URL becomes localhost:8000/api/datasets/upload
+  const response = await api.post<Dataset>("datasets/upload", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return response.data;
 };
 
-// New: Fetches preview data for the Gatekeeper stage (Functionality 2)
-export const getDatasetPreview = async (id: number): Promise<any> => {
-  const response = await api.get(`/datasets/${id}/preview`);
+/**
+ * Provides immediate structural feedback before database commitment.
+ */
+export const previewDataset = async (file: File): Promise<PreviewData> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await api.post<PreviewData>("datasets/preview", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+};
+
+/**
+ * Retrieves existing forensic preview data for ingested relational assets.
+ */
+export const getDatasetPreview = async (id: number): Promise<PreviewData> => {
+  const response = await api.get<PreviewData>(`datasets/${id}/preview`);
   return response.data;
 };
 
 export const getDatasets = async (): Promise<Dataset[]> => {
-  const response = await api.get<Dataset[]>("/datasets/");
+  const response = await api.get<Dataset[]>("datasets/");
   return response.data;
 };
 
 export const deleteDataset = async (id: number): Promise<void> => {
-  await api.delete(`/datasets/${id}`);
+  await api.delete(`datasets/${id}`);
 };
 
 // --- Guided Exploratory Data Analysis (Functionality 3) ---
 
-export const getEDASummary = async (id: number): Promise<any> => {
-  const response = await api.get(`/eda/${id}/summary`);
+/**
+ * Retrieves high-fidelity summary statistics and automated insights.
+ */
+export const getEDASummary = async (id: number): Promise<EDASummary> => {
+  const response = await api.get<EDASummary>(`eda/${id}/summary`);
   return response.data;
 };
 
-export const getMissingValues = async (id: number): Promise<any> => {
-  const response = await api.get(`/eda/${id}/missing`);
+/**
+ * Identifies 'unstructured' gaps and their impact level on reliability.
+ */
+export const getMissingValues = async (id: number): Promise<MissingValue[]> => {
+  const response = await api.get<MissingValue[]>(`eda/${id}/missing`);
   return response.data;
 };
 
-export const getCorrelationMatrix = async (id: number): Promise<any> => {
-  const response = await api.get(`/eda/${id}/correlation`);
+/**
+ * Fetches relationship discovery matrix and natural language insights.
+ */
+export const getCorrelationMatrix = async (
+  id: number
+): Promise<CorrelationData> => {
+  const response = await api.get<CorrelationData>(`eda/${id}/correlation`);
   return response.data;
 };
 
 // --- Interactive Visualization (Functionality 4) ---
 
+/**
+ * Fetches data formatted for dynamic Plotly charting.
+ */
 export const getChartData = async (
   id: number,
   xCol: string,
@@ -76,14 +107,14 @@ export const getChartData = async (
   });
   if (yCol) params.append("y_col", yCol);
 
-  const response = await api.get(`/viz/${id}/chart?${params.toString()}`);
+  const response = await api.get(`viz/${id}/chart?${params.toString()}`);
   return response.data;
 };
 
 export const getDashboards = async (
   datasetId: number
 ): Promise<Dashboard[]> => {
-  const response = await api.get<Dashboard[]>(`/dashboards/${datasetId}`);
+  const response = await api.get<Dashboard[]>(`dashboards/${datasetId}`);
   return response.data;
 };
 
@@ -92,30 +123,39 @@ export const saveDashboard = async (
   name: string,
   config: any
 ): Promise<Dashboard> => {
-  const response = await api.post<Dashboard>(`/dashboards/${datasetId}`, {
+  const response = await api.post<Dashboard>(`dashboards/${datasetId}`, {
     name,
-    layout_config: config,
+    layout_config: JSON.stringify(config),
   });
   return response.data;
 };
 
+/**
+ * Explicitly exported to resolve module SyntaxErrors in VisualizationDashboard.
+ */
 export const deleteDashboard = async (id: number): Promise<void> => {
-  await api.delete(`/dashboards/${id}`);
+  await api.delete(`dashboards/${id}`);
 };
 
 // --- Context-Aware AI Assistance (Functionality 5) ---
 
+/**
+ * Explicitly exported to resolve InsightsDashboard import errors.
+ */
 export const getInsights = async (datasetId: number): Promise<any[]> => {
-  const response = await api.get<any[]>(`/insights/${datasetId}`);
+  const response = await api.get<any[]>(`insights/${datasetId}`);
   return response.data;
 };
 
+/**
+ * Feeds metadata and EDA results for data-backed AI responses.
+ */
 export const sendChatMessage = async (
   datasetId: number,
   message: string
 ): Promise<{ response: string; plot_config?: any }> => {
   const response = await api.post<{ response: string; plot_config?: any }>(
-    `/chat/${datasetId}`,
+    `chat/${datasetId}`,
     { message }
   );
   return response.data;
@@ -125,10 +165,10 @@ export const sendChatMessage = async (
 
 export const login = async (email: string, password: string): Promise<any> => {
   const formData = new URLSearchParams();
-  formData.append("username", email); // OAuth2 expects 'username' field
+  formData.append("username", email);
   formData.append("password", password);
 
-  const response = await api.post("/auth/login", formData, {
+  const response = await api.post("auth/login", formData, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
     },
@@ -141,7 +181,7 @@ export const signup = async (
   password: string,
   fullName: string
 ): Promise<any> => {
-  const response = await api.post("/auth/register", {
+  const response = await api.post("auth/register", {
     email,
     password,
     full_name: fullName,

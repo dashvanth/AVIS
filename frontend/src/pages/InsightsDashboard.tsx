@@ -1,124 +1,176 @@
-import React, { useEffect, useState } from 'react';
-import { Loader2, Lightbulb, AlertTriangle, CheckCircle, Info } from 'lucide-react';
-import { getInsights } from '../services/api';
+// frontend/src/pages/InsightsDashboard.tsx
+import React, { useEffect, useState } from "react";
+import {
+  Loader2,
+  Lightbulb,
+  AlertTriangle,
+  CheckCircle,
+  Info,
+  Zap,
+  Target,
+  BrainCircuit,
+  ChevronRight,
+} from "lucide-react";
+import { getInsights } from "../services/api";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Insight {
-    type: "insight" | "recommendation";
-    severity: "low" | "medium" | "high";
-    column: string;
-    message: string;
+  type: "insight" | "recommendation";
+  severity: "low" | "medium" | "high";
+  column: string;
+  message: string;
 }
 
 interface InsightsDashboardProps {
-    datasetId: number;
+  datasetId: number;
 }
 
 const InsightsDashboard: React.FC<InsightsDashboardProps> = ({ datasetId }) => {
-    const [loading, setLoading] = useState(true);
-    const [insights, setInsights] = useState<Insight[]>([]);
-    const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [insights, setInsights] = useState<Insight[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchInsights = async () => {
-            setLoading(true);
-            try {
-                const data = await getInsights(datasetId);
-                setInsights(data);
-            } catch (err) {
-                console.error("Failed to load insights", err);
-                setError("Failed to generate insights.");
-            } finally {
-                setLoading(false);
-            }
-        };
-        if (datasetId) fetchInsights();
-    }, [datasetId]);
-
-    const getIcon = (type: string, severity: string) => {
-        if (type === 'recommendation') {
-            if (severity === 'high') return <AlertTriangle className="w-5 h-5 text-red-500" />;
-            return <Info className="w-5 h-5 text-blue-500" />;
-        }
-        // Insight
-        if (severity === 'low' && type === 'insight' && !severity) return <CheckCircle className="w-5 h-5 text-green-500" />; // Clean data case
-        return <Lightbulb className="w-5 h-5 text-amber-500" />;
+  useEffect(() => {
+    const fetchInsights = async () => {
+      setLoading(true);
+      try {
+        const data = await getInsights(datasetId);
+        setInsights(data);
+      } catch (err) {
+        setError("Failed to generate automated insights.");
+      } finally {
+        setLoading(false);
+      }
     };
+    if (datasetId) fetchInsights();
+  }, [datasetId]);
 
-    const getBgColor = (type: string, severity: string) => {
-        if (severity === 'high') return 'bg-red-50 border-red-100';
-        if (type === 'recommendation') return 'bg-blue-50 border-blue-100';
-        return 'bg-amber-50 border-amber-100';
-    };
-
-    if (loading) {
-        return (
-            <div className="flex flex-col items-center justify-center py-20">
-                <Loader2 className="w-10 h-10 text-purple-600 animate-spin mb-4" />
-                <p className="text-slate-500">Generating automated insights...</p>
-            </div>
-        );
-    }
-
-    if (error) return <div className="text-red-500">{error}</div>;
-
-    const recommendations = insights.filter(i => i.type === 'recommendation');
-    const dataInsights = insights.filter(i => i.type === 'insight');
-
+  if (loading)
     return (
-        <div className="space-y-8 mt-6">
-            <h2 className="text-2xl font-bold text-slate-800">Automated AI Insights</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Recommendations Section */}
-                <div>
-                    <h3 className="font-semibold text-slate-700 mb-4 flex items-center">
-                        <AlertTriangle className="w-5 h-5 mr-2 text-blue-600" />
-                        Actionable Recommendations
-                    </h3>
-                    <div className="space-y-3">
-                        {recommendations.length === 0 ? (
-                            <div className="p-4 bg-green-50 text-green-700 rounded-lg border border-green-100">
-                                No critical issues found. Data looks good!
-                            </div>
-                        ) : (
-                            recommendations.map((item, idx) => (
-                                <div key={idx} className={`p-4 rounded-lg border flex items-start space-x-3 ${getBgColor(item.type, item.severity)}`}>
-                                    <div className="mt-0.5">{getIcon(item.type, item.severity)}</div>
-                                    <div>
-                                        <p className="font-semibold text-slate-800 text-sm">{item.column}</p>
-                                        <p className="text-sm text-slate-600">{item.message}</p>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-
-                {/* Insights Section */}
-                <div>
-                    <h3 className="font-semibold text-slate-700 mb-4 flex items-center">
-                        <Lightbulb className="w-5 h-5 mr-2 text-amber-500" />
-                        Data Insights
-                    </h3>
-                    <div className="space-y-3">
-                        {dataInsights.length === 0 ? (
-                            <p className="text-slate-500">No specific patterns detected.</p>
-                        ) : (
-                            dataInsights.map((item, idx) => (
-                                <div key={idx} className={`p-4 rounded-lg border flex items-start space-x-3 ${getBgColor(item.type, item.severity)}`}>
-                                    <div className="mt-0.5">{getIcon(item.type, item.severity)}</div>
-                                    <div>
-                                        <p className="font-semibold text-slate-800 text-sm">{item.column}</p>
-                                        <p className="text-sm text-slate-600">{item.message}</p>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-            </div>
-        </div>
+      <div className="flex flex-col items-center justify-center py-40 bg-avis-primary">
+        <BrainCircuit className="w-16 h-16 text-avis-accent-indigo animate-pulse mb-6 opacity-40" />
+        <p className="text-avis-text-secondary font-black uppercase tracking-[0.4em] text-[10px]">
+          A.V.I.S Cognitive Audit in progress...
+        </p>
+      </div>
     );
+
+  const recommendations = insights.filter((i) => i.type === "recommendation");
+  const dataInsights = insights.filter((i) => i.type === "insight");
+
+  return (
+    <div className="max-w-[1600px] mx-auto px-6 py-10 space-y-12 bg-avis-primary min-h-screen">
+      {/* ADVANCED HEADER (Functionality 6) */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-avis-border/40 pb-10">
+        <div>
+          <div className="flex items-center gap-3 text-avis-accent-indigo text-[10px] font-black uppercase tracking-[0.4em] mb-3">
+            <Zap className="w-4 h-4" /> Discovery Node: Intelligence
+          </div>
+          <h2 className="text-5xl font-black text-white tracking-tighter italic">
+            AI Insights
+          </h2>
+          <p className="text-avis-text-secondary mt-3 text-sm font-medium max-w-2xl">
+            Context-aware observations generated by feeding your Exploratory
+            Audit results into our analytical reasoning engine.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        {/* 1. ACTIONABLE RECOMMENDATIONS (Functionality 6) */}
+        <div className="space-y-6">
+          <h3 className="text-[10px] font-black text-avis-accent-indigo uppercase tracking-[0.3em] flex items-center gap-3 ml-2">
+            <Target className="w-4 h-4" /> Actionable Logic
+          </h3>
+          <div className="space-y-4">
+            {recommendations.length === 0 ? (
+              <div className="p-8 bg-avis-accent-success/5 border border-avis-accent-success/20 rounded-[2.5rem] text-center">
+                <CheckCircle className="w-10 h-10 text-avis-accent-success mx-auto mb-4 opacity-40" />
+                <p className="text-xs font-bold text-avis-accent-success uppercase">
+                  Data integrity optimal. No critical fixes required.
+                </p>
+              </div>
+            ) : (
+              recommendations.map((item, idx) => (
+                <InsightCard key={idx} item={item} />
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* 2. DATA OBSERVATIONS (Functionality 6) */}
+        <div className="space-y-6">
+          <h3 className="text-[10px] font-black text-avis-accent-amber uppercase tracking-[0.3em] flex items-center gap-3 ml-2">
+            <Lightbulb className="w-4 h-4" /> Feature Observations
+          </h3>
+          <div className="space-y-4">
+            {dataInsights.map((item, idx) => (
+              <InsightCard key={idx} item={item} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// HELPER COMPONENT: INSIGHT CARD
+const InsightCard = ({ item }: { item: Insight }) => {
+  const isRec = item.type === "recommendation";
+  const isHigh = item.severity === "high";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      className={`p-6 rounded-[2rem] border transition-all ${
+        isHigh
+          ? "bg-red-500/5 border-red-500/20"
+          : isRec
+          ? "bg-avis-accent-indigo/5 border-avis-accent-indigo/20"
+          : "bg-avis-accent-amber/5 border-avis-accent-amber/20"
+      }`}
+    >
+      <div className="flex gap-5">
+        <div
+          className={`p-3 rounded-xl shrink-0 ${
+            isHigh
+              ? "bg-red-500/10 text-red-500"
+              : isRec
+              ? "bg-avis-accent-indigo/10 text-avis-accent-indigo"
+              : "bg-avis-accent-amber/10 text-avis-accent-amber"
+          }`}
+        >
+          {isHigh ? (
+            <AlertTriangle className="w-5 h-5" />
+          ) : isRec ? (
+            <Info className="w-5 h-5" />
+          ) : (
+            <Lightbulb className="w-5 h-5" />
+          )}
+        </div>
+        <div className="space-y-1">
+          <p className="text-[9px] font-black uppercase tracking-widest text-avis-text-secondary opacity-60">
+            Feature: {item.column}
+          </p>
+          <p className="text-white font-bold text-sm leading-relaxed italic">
+            "{item.message}"
+          </p>
+          <div className="flex items-center gap-2 mt-3">
+            <span
+              className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md ${
+                isHigh
+                  ? "bg-red-500 text-white"
+                  : "bg-avis-primary text-avis-text-secondary border border-avis-border"
+              }`}
+            >
+              {item.severity} Priority
+            </span>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
 };
 
 export default InsightsDashboard;

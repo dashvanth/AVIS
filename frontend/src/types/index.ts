@@ -1,8 +1,7 @@
 // frontend/src/types/index.ts
 
 /**
- * ProcessingStep: Represents an individual action taken by the
- * backend during the automated cleaning/audit phase.
+ * Represents a single automated action taken by the Ingress Engine.
  */
 export interface ProcessingStep {
   action: string;
@@ -11,50 +10,45 @@ export interface ProcessingStep {
 }
 
 /**
- * StructuralAudit: Specifically tracks the absolute raw null counts
- * before cleaning to ensure 100% accuracy (e.g., detecting all 249 gaps).
+ * Accurate raw metrics captured before cleaning to ensure radical transparency.
  */
 export interface StructuralAudit {
   total_nulls: number;
   null_rows: number;
   null_cols: number;
+  duplicates: number;
 }
 
 /**
- * UnstructuredColumnMetadata: Detailed forensics for each column
- * that contains unstructured anomalies.
+ * Detailed column-level gap forensics.
  */
 export interface UnstructuredColumnMetadata {
   column: string;
   gap_count: number;
   density: string;
-  inferred_type: string;
 }
 
 /**
- * AuditMetrics: High-level forensic summary used to render
- * the Orientation cards above the preview.
+ * Simplified metrics for orientation cards.
  */
 export interface AuditMetrics {
-  null_row_count: number;
-  null_column_count: number;
-  total_instances: number;
-  asset_importance: string;
+  null_rows: number;
+  null_columns: number;
+  null_values: number;
+  wrong_types: number;
+  total_entities: number;
+  asset_note: string;
+  asset_importance?: string;
   unstructured_metadata: UnstructuredColumnMetadata[];
 }
 
-/**
- * QualityScore: A simplified health rating for beginners.
- */
 export interface QualityScore {
   score: number;
   rating: "Optimal" | "Stable" | "Unstructured" | "Critical";
+  density?: string;
   issues: string[];
 }
 
-/**
- * Dataset: The main relational entity stored in MySQL.
- */
 export interface Dataset {
   id: number;
   filename: string;
@@ -71,10 +65,6 @@ export interface Dataset {
   created_at: string;
 }
 
-/**
- * PreviewData: The payload returned by the orientation engine.
- * Includes 'anomaly_data' for targeted preview and 'structural_audit' for accuracy.
- */
 export interface PreviewData {
   filename: string;
   file_type: string;
@@ -91,7 +81,7 @@ export interface PreviewData {
 }
 
 /**
- * EDA & Summary Statistics interfaces.
+ * Advanced Numeric Summary: Includes automated insights for beginners.
  */
 export interface NumericSummary {
   column: string;
@@ -99,15 +89,26 @@ export interface NumericSummary {
   mean: number;
   std: number;
   min: number;
+  "25%": number;
+  "50%": number;
+  "75%": number;
   max: number;
+  insight: string; // Automated explanation of the distribution
 }
 
+/**
+ * Advanced Categorical Summary: Includes diversity indexing.
+ */
 export interface CategoricalSummary {
   column: string;
   unique_count: number;
   top_values: Record<string, number>;
+  diversity_index: string; // Human-readable variety score
 }
 
+/**
+ * Full EDA payload returned by the Discovery Engine.
+ */
 export interface EDASummary {
   numeric: NumericSummary[];
   categorical: CategoricalSummary[];
@@ -116,8 +117,20 @@ export interface EDASummary {
 }
 
 /**
- * Dashboard & Visualization interfaces.
+ * Relationship Discovery Payload: Explains connections between variables.
  */
+export interface CorrelationData {
+  matrix: Record<string, any>[];
+  top_discoveries: string[]; // List of natural language insights
+}
+
+export interface MissingValue {
+  column: string;
+  missing_count: number;
+  missing_percentage: number;
+  impact_level: string; // Simple "Low/High" impact label
+}
+
 export interface Dashboard {
   id: number;
   name: string;
@@ -125,9 +138,43 @@ export interface Dashboard {
   layout_config: string;
   created_at: string;
 }
+// frontend/src/types/index.ts update
+
+export interface StructuralAudit {
+  total_nulls: number;
+  null_rows: number;
+  null_cols: number;
+  duplicates: number; // Added forensic tracking
+}
+
+export interface NumericSummary {
+  column: string;
+  count: number;
+  mean: number;
+  std: number;
+  min: number;
+  "25%": number;
+  "50%": number;
+  "75%": number;
+  max: number;
+  insight: string; // Explains 'Heavily Skewed' or 'Stable' in simple words
+}
+
+export interface CategoricalSummary {
+  column: string;
+  unique_count: number;
+  top_values: Record<string, number>;
+  diversity_index: string; // Explains grouping patterns to users
+}
 
 export interface MissingValue {
   column: string;
   missing_count: number;
   missing_percentage: number;
+  impact_level: "Low Impact" | "Medium Impact" | "High Anomaly"; // Forensic classification
+}
+
+export interface CorrelationData {
+  matrix: Record<string, any>[];
+  top_discoveries: string[]; // List of natural language insights
 }
