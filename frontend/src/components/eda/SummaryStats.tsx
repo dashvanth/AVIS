@@ -1,27 +1,27 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Calculator,
   Table,
   Activity,
   Layers,
-  Info,
   HelpCircle,
   Sigma,
   Zap,
-  TrendingUp,
-  BarChart3,
-  Search,
   ArrowRight,
   ShieldCheck,
   FileDigit,
   Type,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  Info,
 } from "lucide-react";
 import type {
   NumericSummary,
   CategoricalSummary,
   ProcessingStep,
 } from "../../types";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useOutletContext } from "react-router-dom";
 
 interface SummaryStatsProps {
@@ -37,8 +37,8 @@ const SummaryStats: React.FC<SummaryStatsProps> = ({
   totalRows,
   totalColumns,
 }) => {
-  // Accessing the dataset from Layout context to get the processing_log
   const { dataset } = useOutletContext<{ dataset: any }>();
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   const auditLogs: ProcessingStep[] = useMemo(() => {
     try {
@@ -70,7 +70,7 @@ const SummaryStats: React.FC<SummaryStatsProps> = ({
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 relative z-10">
           {/* Row Integrity Audit */}
-          <div className="p-8 bg-avis-primary/40 rounded-[2.5rem] border border-white/5 space-y-6">
+          <div className="p-8 bg-avis-primary/40 rounded-[2.5rem] border border-white/5 space-y-6 shadow-inner">
             <div className="flex items-center gap-3">
               <FileDigit className="w-5 h-5 text-avis-accent-cyan" />
               <span className="text-xs font-black text-white uppercase tracking-widest">
@@ -100,14 +100,10 @@ const SummaryStats: React.FC<SummaryStatsProps> = ({
                 </p>
               </div>
             </div>
-            <p className="text-[11px] text-avis-text-secondary italic text-center pt-2">
-              "We isolated and removed unusable rows to prevent broken
-              averages."
-            </p>
           </div>
 
           {/* Type Inference Audit */}
-          <div className="p-8 bg-avis-primary/40 rounded-[2.5rem] border border-white/5 space-y-6">
+          <div className="p-8 bg-avis-primary/40 rounded-[2.5rem] border border-white/5 space-y-6 shadow-inner">
             <div className="flex items-center gap-3">
               <Type className="w-5 h-5 text-avis-accent-amber" />
               <span className="text-xs font-black text-white uppercase tracking-widest">
@@ -141,43 +137,39 @@ const SummaryStats: React.FC<SummaryStatsProps> = ({
                 </div>
               )}
             </div>
-            <p className="text-[11px] text-avis-text-secondary italic text-center pt-2">
-              "We identified numbers hidden in text and fixed them for
-              analysis."
-            </p>
           </div>
         </div>
       </div>
 
-      {/* 2. DATA OVERVIEW CARDS: Simplified labels for beginners */}
+      {/* 2. DATA OVERVIEW CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatMetricCard
           label="Valid Rows"
           value={totalRows.toLocaleString()}
           icon={<Layers className="w-5 h-5 text-avis-accent-indigo" />}
-          desc="The final count of rows ready for analysis."
+          desc="Final record count after forensic cleaning."
         />
         <StatMetricCard
           label="Data Points"
           value={totalColumns.toString()}
           icon={<Table className="w-5 h-5 text-avis-accent-cyan" />}
-          desc="Attributes detected per unique entity."
+          desc="Total attributes identified per entity."
         />
         <StatMetricCard
           label="Numbers"
           value={numeric.length.toString()}
           icon={<Sigma className="w-5 h-5 text-avis-accent-success" />}
-          desc="Columns with measurable numeric data."
+          desc="Measurable numeric feature dimensions."
         />
         <StatMetricCard
           label="Labels"
           value={categorical.length.toString()}
           icon={<Activity className="w-5 h-5 text-avis-accent-amber" />}
-          desc="Columns used for groups and names."
+          desc="Columns used for labeling or grouping."
         />
       </div>
 
-      {/* 3. NUMBER ANALYSIS: Simplified from "Quantitative Matrix" */}
+      {/* 3. FUNCTIONALITY 3: PROGRESSIVE NUMBER ANALYSIS TABLE */}
       <div className="bg-avis-secondary/40 border border-avis-border/60 rounded-[3rem] overflow-hidden shadow-2xl backdrop-blur-xl">
         <div className="px-10 py-8 border-b border-avis-border/40 flex justify-between items-center bg-avis-primary/40">
           <div className="flex items-center gap-4">
@@ -187,7 +179,7 @@ const SummaryStats: React.FC<SummaryStatsProps> = ({
                 Averages and Spread
               </h3>
               <p className="text-[10px] text-avis-text-secondary font-bold uppercase tracking-widest">
-                What does a typical row look like?
+                Click a row to reveal the system logic
               </p>
             </div>
           </div>
@@ -196,66 +188,105 @@ const SummaryStats: React.FC<SummaryStatsProps> = ({
           <table className="w-full text-sm text-left border-collapse">
             <thead className="bg-avis-primary/60 text-[10px] uppercase font-black text-avis-text-secondary tracking-[0.2em]">
               <tr>
-                <th className="px-10 py-6 border-b border-avis-border/40">
-                  Column
-                </th>
-                <th className="px-10 py-6 border-b border-avis-border/40 group cursor-help">
-                  <div className="flex items-center gap-2">
-                    Average{" "}
-                    <HelpCircle className="w-3 h-3 text-avis-accent-indigo" />
-                  </div>
-                </th>
-                <th className="px-10 py-6 border-b border-avis-border/40 group cursor-help">
-                  <div className="flex items-center gap-2">
-                    Variation{" "}
-                    <HelpCircle className="w-3 h-3 text-avis-accent-indigo" />
-                  </div>
-                </th>
-                <th className="px-10 py-6 border-b border-avis-border/40 text-center">
-                  Full Range (Lowest → Highest)
-                </th>
+                <th className="px-10 py-6">Column Name</th>
+                <th className="px-10 py-6">Average</th>
+                <th className="px-10 py-6">Variation</th>
+                <th className="px-10 py-6 text-center">Data Spread</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-avis-border/20">
               {numeric.map((stat, idx) => (
-                <motion.tr
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  key={stat.column}
-                  className="hover:bg-white/5 transition-colors group"
-                >
-                  <td className="px-10 py-6 font-black text-white text-lg tracking-tight italic">
-                    {stat.column}
-                  </td>
-                  <td className="px-10 py-6 font-mono text-avis-accent-cyan font-black text-lg">
-                    {stat.mean.toLocaleString(undefined, {
-                      maximumFractionDigits: 2,
-                    })}
-                  </td>
-                  <td className="px-10 py-6 font-mono text-avis-text-secondary text-base">
-                    {stat.std.toLocaleString(undefined, {
-                      maximumFractionDigits: 2,
-                    })}
-                  </td>
-                  <td className="px-10 py-6 min-w-[300px]">
-                    <div className="flex flex-col gap-2">
-                      <div className="flex justify-between text-[10px] font-black uppercase text-avis-text-secondary mb-1">
-                        <span>{stat.min.toLocaleString()}</span>
-                        <span className="text-white">
-                          {stat.max.toLocaleString()}
-                        </span>
+                <React.Fragment key={stat.column}>
+                  <motion.tr
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    onClick={() =>
+                      setExpandedRow(
+                        expandedRow === stat.column ? null : stat.column
+                      )
+                    }
+                    className="hover:bg-white/5 transition-colors group cursor-pointer"
+                  >
+                    <td className="px-10 py-6 font-black text-white text-lg italic flex items-center gap-3">
+                      {stat.column}
+                      {expandedRow === stat.column ? (
+                        <ChevronUp className="w-4 h-4 text-avis-accent-indigo" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 opacity-20 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </td>
+                    <td className="px-10 py-6 font-mono text-avis-accent-cyan font-black text-lg">
+                      {stat.mean.toLocaleString(undefined, {
+                        maximumFractionDigits: 2,
+                      })}
+                    </td>
+                    <td className="px-10 py-6 font-mono text-avis-text-secondary">
+                      {stat.std.toLocaleString(undefined, {
+                        maximumFractionDigits: 2,
+                      })}
+                    </td>
+                    <td className="px-10 py-6 min-w-[300px]">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex justify-between text-[9px] font-black uppercase text-avis-text-secondary">
+                          <span>{stat.min.toLocaleString()}</span>
+                          <span className="text-white">
+                            {stat.max.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="h-1.5 bg-avis-primary rounded-full overflow-hidden border border-avis-border/40">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: "100%" }}
+                            className="h-full bg-gradient-to-r from-avis-accent-indigo to-avis-accent-cyan opacity-40 group-hover:opacity-100 transition-opacity"
+                          />
+                        </div>
                       </div>
-                      <div className="h-2 bg-avis-primary rounded-full overflow-hidden border border-avis-border/40 shadow-inner">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: "100%" }}
-                          className="h-full bg-gradient-to-r from-avis-accent-indigo to-avis-accent-cyan opacity-40 group-hover:opacity-100 transition-opacity"
-                        />
-                      </div>
-                    </div>
-                  </td>
-                </motion.tr>
+                    </td>
+                  </motion.tr>
+
+                  {/* VISIBLE BACKEND STEPS (Functionality 3) */}
+                  <AnimatePresence>
+                    {expandedRow === stat.column && (
+                      <tr>
+                        <td colSpan={4} className="px-10 py-0">
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="bg-avis-accent-indigo/5 border-x border-b border-avis-accent-indigo/20 rounded-b-[2rem] p-8 mb-4 grid grid-cols-1 md:grid-cols-2 gap-8 shadow-inner">
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2 text-avis-accent-indigo">
+                                  <Search className="w-4 h-4" />
+                                  <span className="text-[10px] font-black uppercase tracking-widest">
+                                    Observation
+                                  </span>
+                                </div>
+                                <p className="text-white font-bold text-sm italic leading-relaxed">
+                                  "{stat.insight}"
+                                </p>
+                              </div>
+                              <div className="space-y-3 border-l border-white/5 pl-8">
+                                <div className="flex items-center gap-2 text-avis-text-secondary">
+                                  <Info className="w-4 h-4" />
+                                  <span className="text-[10px] font-black uppercase tracking-widest">
+                                    Visible Backend Steps
+                                  </span>
+                                </div>
+                                <p className="text-avis-text-secondary text-[11px] leading-relaxed font-medium">
+                                  {stat.logic_desc ||
+                                    "Analyzing variance patterns across unique records."}
+                                </p>
+                              </div>
+                            </div>
+                          </motion.div>
+                        </td>
+                      </tr>
+                    )}
+                  </AnimatePresence>
+                </React.Fragment>
               ))}
             </tbody>
           </table>
@@ -274,10 +305,10 @@ const SummaryStats: React.FC<SummaryStatsProps> = ({
           >
             <div className="flex justify-between items-start mb-8">
               <div className="space-y-1">
-                <h4 className="font-black text-white text-xl tracking-tight group-hover:text-avis-accent-amber transition-colors">
+                <h4 className="font-black text-white text-xl group-hover:text-avis-accent-amber transition-colors italic">
                   {stat.column}
                 </h4>
-                <p className="text-[9px] text-avis-text-secondary font-black uppercase tracking-widest italic">
+                <p className="text-[9px] text-avis-text-secondary font-black uppercase tracking-widest">
                   Label Group
                 </p>
               </div>
@@ -285,30 +316,34 @@ const SummaryStats: React.FC<SummaryStatsProps> = ({
                 {stat.unique_count} Types
               </div>
             </div>
-            <ul className="space-y-5 flex-1">
+            {/* Logic description for categories */}
+            <p className="text-[10px] text-avis-text-secondary mb-6 italic opacity-60">
+              {stat.logic_desc || "Frequency density scan complete."}
+            </p>
+            <ul className="space-y-4 flex-1">
               {Object.entries(stat.top_values).map(([val, count]) => {
                 const percentage = ((count / totalRows) * 100).toFixed(1);
                 return (
                   <li key={val} className="space-y-2">
-                    <div className="flex justify-between text-xs font-black uppercase tracking-tighter">
+                    <div className="flex justify-between text-xs font-bold uppercase">
                       <span
                         className="text-avis-text-secondary truncate max-w-[150px]"
                         title={val}
                       >
                         {val}
                       </span>
-                      <span className="text-white font-mono">
+                      <span className="text-white">
                         {count}{" "}
-                        <span className="text-avis-accent-amber opacity-60 ml-2">
+                        <span className="text-[9px] text-avis-accent-amber opacity-60 ml-1">
                           {percentage}%
                         </span>
                       </span>
                     </div>
-                    <div className="h-1.5 bg-avis-primary rounded-full overflow-hidden border border-avis-border/20 shadow-inner">
+                    <div className="h-1 bg-avis-primary rounded-full overflow-hidden">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${percentage}%` }}
-                        className="h-full bg-avis-accent-amber shadow-[0_0_10px_rgba(251,191,36,0.5)]"
+                        className="h-full bg-avis-accent-amber shadow-[0_0_8px_rgba(251,191,36,0.4)]"
                       />
                     </div>
                   </li>
@@ -322,7 +357,6 @@ const SummaryStats: React.FC<SummaryStatsProps> = ({
   );
 };
 
-// MINI COMPONENTS
 const StatMetricCard = ({
   label,
   value,

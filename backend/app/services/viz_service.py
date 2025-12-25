@@ -5,76 +5,90 @@ from fastapi import HTTPException
 from app.services.eda_service import get_dataframe
 
 def get_chart_data(dataset_id: int, x_col: str, chart_type: str, y_col: str = None, session: Session = None):
+    """
+    Functionality 4: High-Fidelity Visualization Node.
+    Reformats raw database matrices into Plotly-compliant arrays (x, y).
+    """
     df = get_dataframe(dataset_id, session)
     
     if x_col not in df.columns:
         raise HTTPException(status_code=400, detail=f"Column '{x_col}' not found")
     
-    if y_col and y_col not in df.columns:
-        raise HTTPException(status_code=400, detail=f"Column '{y_col}' not found")
-
-    # Simple data aggregation/sampling for performance
     MAX_POINTS = 1000
     
     try:
-        data = []
-        if chart_type == 'scatter':
-            if not y_col:
-                raise HTTPException(status_code=400, detail="Scatter plot requires Y column")
-            # Drop NAs
-            plot_df = df[[x_col, y_col]].dropna()
-            # Sample if too large
-            if len(plot_df) > MAX_POINTS:
-                plot_df = plot_df.sample(MAX_POINTS)
-            
-            data = plot_df.to_dict(orient='records')
-            
-        elif chart_type in ['bar', 'line', 'area']:
-            if y_col:
-                # Aggregate: Average of Y by X
-                # Check if Y is numeric
+        y_label = "Count"
+        
+        # --- LOGIC LAYER: DATA AGGREGATION & FORMATTING ---
+        if chart_type in ['bar', 'line', 'area']:
+            if y_col and y_col in df.columns:
+                # Forensic Check: Is Y numeric?
                 if pd.api.types.is_numeric_dtype(df[y_col]):
                     grouped = df.groupby(x_col)[y_col].mean().reset_index()
+                    y_label = f"Average of {y_col}"
                 else:
-                    # Count
-                    grouped = df.groupby([x_col, y_col]).size().reset_index(name='count')
+                    # Fallback: Count occurrences if Y is categorical
+                    grouped = df.groupby(x_col).size().reset_index(name='count')
+                    y_label = "Frequency Count"
             else:
-                # Count by X
+                # Basic frequency count for single-axis analysis
                 grouped = df[x_col].value_counts().reset_index()
                 grouped.columns = [x_col, 'count']
-                y_col = 'count' # implicit Y
+                y_label = "Total Count"
 
-            # Sort by X usually makes sense for lines/bars
-            if pd.api.types.is_numeric_dtype(grouped[x_col]) or pd.api.types.is_datetime64_any_dtype(grouped[x_col]):
-                 grouped = grouped.sort_values(x_col)
-            else:
-                 grouped = grouped.head(50) # Limit categories
-            
-            data = grouped.to_dict(orient='records')
+            # Clean, sort, and limit to ensure UI stability
+            grouped = grouped.dropna().head(50)
+            x_data = grouped[x_col].tolist()
+            y_data = grouped.iloc[:, 1].tolist() # Use the calculated mean or count
 
         elif chart_type == 'pie':
-            # Count by X
-            grouped = df[x_col].value_counts().reset_index()
-            grouped.columns = [x_col, 'count']
-            grouped = grouped.head(10) # Top 10 for pie
-            data = grouped.to_dict(orient='records')
-            y_col = 'count' # implicit
+            counts = df[x_col].value_counts().head(10)
+            x_data = counts.index.tolist()
+            y_data = counts.values.tolist()
+            y_label = "Proportional Distribution"
 
-        elif chart_type == 'histogram':
-             # Return raw values for plotly to bin, sampled
-             plot_df = df[[x_col]].dropna()
-             if len(plot_df) > MAX_POINTS:
-                plot_df = plot_df.sample(MAX_POINTS)
-             data = plot_df.to_dict(orient='records')
+        elif chart_type == 'scatter':
+            if not y_col:
+                raise HTTPException(status_code=400, detail="Scatter plots require an intersect (Y) dimension.")
+            
+            # Sampling for high-performance rendering
+            plot_df = df[[x_col, y_col]].dropna().sample(min(len(df), MAX_POINTS))
+            x_data = plot_df[x_col].tolist()
+            y_data = plot_df[y_col].tolist()
+            y_label = y_col
+
+        else:
+            raise HTTPException(status_code=400, detail=f"Unsupported chart architecture: {chart_type}")
+
+        # --- PRESENTATION LAYER: PLOTLY HANDSHAKE ---
+        # We restructure the data here into 'x' and 'y' arrays to prevent Frontend 500 errors.
+        trace = {
+            "x": x_data,
+            "y": y_data,
+            "type": chart_type,
+            "mode": 'lines+markers' if chart_type == 'line' else ('markers' if chart_type == 'scatter' else None),
+            "marker": {"color": "#6366f1", "size": 8 if chart_type == 'scatter' else None},
+            "labels": x_data if chart_type == 'pie' else None,
+            "values": y_data if chart_type == 'pie' else None,
+            "hole": 0.4 if chart_type == 'pie' else None # Modern donut aesthetic
+        }
+
+        # Remove keys with None values to keep the JSON payload clean
+        trace = {k: v for k, v in trace.items() if v is not None}
 
         return {
-            "data": data,
+            "data": [trace],
             "layout": {
-                "title": f"{chart_type.title()} Chart of {x_col}" + (f" vs {y_col}" if y_col else ""),
-                "xaxis": {"title": x_col},
-                "yaxis": {"title": y_col or "Count"}
+                "title": f"Forensic Audit: {x_col} Analysis",
+                "xaxis": {"title": x_col, "color": "#94a3b8"},
+                "yaxis": {"title": y_label, "color": "#94a3b8"},
+                "paper_bgcolor": "rgba(0,0,0,0)",
+                "plot_bgcolor": "rgba(0,0,0,0)",
+                "font": {"family": "Inter, sans-serif", "color": "#94a3b8"},
+                "margin": {"t": 50, "b": 50, "l": 50, "r": 50}
             }
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Standardized Forensic Error Mapping
+        raise HTTPException(status_code=500, detail=f"Visualization Node Failure: {str(e)}")

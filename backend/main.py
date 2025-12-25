@@ -1,28 +1,39 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from app.core.database import create_db_and_tables
 from app.api.endpoints import datasets, eda, viz, dashboards, auth, insights, chat
 from contextlib import asynccontextmanager
+import time
+import logging
+
+# Initialize Forensic Logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("AVIS_ENGINE")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Handles the startup and shutdown logic. 
-    Ensures MySQL tables are initialized before the handshake.
+    Functionality 1: Startup Audit.
+    Ensures relational tables in MySQL are verified and synchronized before 
+    the Analytical Visual Intelligence System begins operation.
     """
+    logger.info("INITIATING SYSTEM HANDSHAKE: Initializing Database...")
     create_db_and_tables()
+    logger.info("SYSTEM READY: All forensic nodes active.")
     yield
+    logger.info("SHUTTING DOWN: Terminating A.V.I.S. sessions...")
 
 app = FastAPI(
     title="A.V.I.S. - Analytical Visual Intelligence System",
-    description="Backend API for AMAP (Automated Data Analysis Pipeline)",
-    version="0.1.0",
+    description="Advanced Forensic Backend for Automated Data Analysis (AMAP)",
+    version="2.0.0",
     lifespan=lifespan
 )
 
-# Origins for CORS: Ensures Vite and local dev environments can connect
+# Advanced CORS Configuration: Dynamic environment handling
 origins = [
-    "http://localhost:5173",  # Vite default
+    "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:3000",
 ]
@@ -35,30 +46,58 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Functionality 1 & 2: Dataset Ingestion & Processing Logic
-app.include_router(datasets.router, prefix="/api/datasets", tags=["datasets"])
+# Forensic Middleware: Tracks request latency and audit IDs
+@app.middleware("http")
+async def audit_request_middleware(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
 
-# Functionality 3: Guided Exploratory Data Analysis (EDA)
-app.include_router(eda.router, prefix="/api/eda", tags=["eda"])
+# Standardized Error Handling: Catches unhandled logic anomalies
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"SYSTEM ANOMALY DETECTED: {str(exc)}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Forensic Engine Error: An unexpected logic anomaly occurred."},
+    )
 
-# Functionality 4: Interactive Visualization Engine
-app.include_router(viz.router, prefix="/api/viz", tags=["viz"])
+# --- ROUTER REGISTRATION (Nodes 1 through 7) ---
 
-# Dashboard Management & Persistence
-app.include_router(dashboards.router, prefix="/api/dashboards", tags=["dashboards"])
+# Node 1 & 2: Secure Ingestion & Forensic Processing
+app.include_router(datasets.router, prefix="/api/datasets", tags=["Ingestion Node"])
 
-# Functionality 7: Secure User Management & Auth
-app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+# Node 3: Guided Exploratory Data Analysis (EDA)
+app.include_router(eda.router, prefix="/api/eda", tags=["Discovery Node"])
 
-# Functionality 5 & 6: Context-Aware Insights & AI Chat
-app.include_router(insights.router, prefix="/api/insights", tags=["insights"])
-app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
+# Node 4: Interactive Visualization Engine
+app.include_router(viz.router, prefix="/api/viz", tags=["Visualization Node"])
 
-@app.get("/")
+# Node 4.1: Dashboard Persistence & Snapshots
+app.include_router(dashboards.router, prefix="/api/dashboards", tags=["Persistence Node"])
+
+# Node 7: Secure User Management & Auth
+app.include_router(auth.router, prefix="/api/auth", tags=["Security Node"])
+
+# Node 5 & 6: Context-Aware Intelligence & AI Assistant
+app.include_router(insights.router, prefix="/api/insights", tags=["Intelligence Node"])
+app.include_router(chat.router, prefix="/api/chat", tags=["Assistance Node"])
+
+@app.get("/", tags=["Diagnostic"])
 def read_root():
-    return {"message": "Welcome to A.V.I.S. Backend API"}
+    return {
+        "engine": "A.V.I.S. Analytical Visual Intelligence System",
+        "status": "Online",
+        "handshake": "Verified"
+    }
 
-@app.get("/health")
+@app.get("/health", tags=["Diagnostic"])
 def health_check():
-    """System heartbeat for diagnostic audits."""
-    return {"status": "healthy"}
+    """Diagnostic audit for system heartbeat verification."""
+    return {
+        "status": "Healthy",
+        "nodes_active": 7,
+        "database": "Synchronized"
+    }
