@@ -3,24 +3,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import FileUpload from "../components/FileUpload";
 import DataPreviewTable from "../components/DataPreviewTable";
-import { getDatasetPreview } from "../services/api";
+import { getDatasetPreview, deleteDataset } from "../services/api"; // Added deleteDataset import
 import {
   Database,
-  ShieldCheck,
   FileCheck,
   Microscope,
   RefreshCw,
-  Search,
   AlertTriangle,
   Zap,
   HelpCircle,
-  ArrowRight,
   Fingerprint,
   Binary,
-  Trash2,
   ChevronRight,
   Cpu,
-  History,
   AlertCircle,
 } from "lucide-react";
 import type { Dataset, PreviewData, ProcessingStep } from "../types";
@@ -47,7 +42,6 @@ const DatasetsPage: React.FC = () => {
     addLog("File received. Starting check...");
 
     try {
-      // Fetch the real numbers (249 nulls, etc.) immediately
       const res = await getDatasetPreview(dataset.id);
       setPreviewMetadata(res);
 
@@ -62,7 +56,15 @@ const DatasetsPage: React.FC = () => {
     }
   };
 
-  const handleReject = () => {
+  // Fixed Reject Logic: Now deletes the dataset from the DB and history
+  const handleReject = async () => {
+    if (currentDataset) {
+      try {
+        await deleteDataset(currentDataset.id);
+      } catch (err) {
+        console.error("Failed to prune rejected dataset:", err);
+      }
+    }
     setCurrentDataset(null);
     setPreviewMetadata(null);
     setStage("idle");
@@ -86,7 +88,6 @@ const DatasetsPage: React.FC = () => {
           </p>
         </div>
 
-        {/* STAGE INDICATORS - Responsive scroll on mobile */}
         <div className="flex items-center gap-3 bg-avis-secondary/30 p-2 rounded-2xl border border-avis-border/50 overflow-x-auto w-full sm:w-auto no-scrollbar">
           <StageIndicator
             active={stage === "idle"}
@@ -108,9 +109,7 @@ const DatasetsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. MAIN LAYOUT - Responsive Stack */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* LEFT: INTERACTION AREA */}
         <div className="lg:col-span-8 space-y-6 order-2 lg:order-1">
           <AnimatePresence mode="wait">
             {stage === "idle" && (
@@ -165,7 +164,7 @@ const DatasetsPage: React.FC = () => {
                     <div className="flex gap-3 w-full sm:w-auto">
                       <button
                         onClick={handleReject}
-                        className="flex-1 px-5 py-2.5 bg-avis-primary border border-avis-border rounded-xl text-xs font-bold text-red-400"
+                        className="flex-1 px-5 py-2.5 bg-avis-primary border border-avis-border rounded-xl text-xs font-bold text-red-400 hover:bg-red-500/10 transition-colors"
                       >
                         REJECT
                       </button>
@@ -173,7 +172,7 @@ const DatasetsPage: React.FC = () => {
                         onClick={() =>
                           navigate(`/dashboard/${currentDataset.id}/eda`)
                         }
-                        className="flex-1 px-6 py-2.5 bg-avis-accent-indigo text-white rounded-xl text-xs font-black uppercase shadow-lg"
+                        className="flex-1 px-6 py-2.5 bg-avis-accent-indigo text-white rounded-xl text-xs font-black uppercase shadow-lg hover:bg-indigo-500 transition-colors"
                       >
                         APPROVE
                       </button>
@@ -188,41 +187,55 @@ const DatasetsPage: React.FC = () => {
           </AnimatePresence>
         </div>
 
-        {/* RIGHT: SIMPLE AUDIT CARDS & SUMMARY */}
         <div className="lg:col-span-4 space-y-6 order-1 lg:order-2">
-          {/* NEW: SIMPLE AUDIT CARDS (Placed above orientation) */}
+          {/* UPDATED: Simplified labels and Red Color alerts for errors */}
           <div className="grid grid-cols-2 gap-4">
             <SimpleStatCard
-              label="Null Values"
+              label="Missing Info"
               value={previewMetadata?.structural_audit?.total_nulls ?? 0}
-              color="text-orange-400"
+              color={
+                (previewMetadata?.structural_audit?.total_nulls ?? 0) > 0
+                  ? "text-red-500"
+                  : "text-green-400"
+              }
               icon={<Zap className="w-4 h-4" />}
-              desc="Total missing data"
+              desc="Total empty spaces"
             />
             <SimpleStatCard
-              label="Null Rows"
+              label="Broken Rows"
               value={previewMetadata?.structural_audit?.null_rows ?? 0}
-              color="text-amber-400"
+              color={
+                (previewMetadata?.structural_audit?.null_rows ?? 0) > 0
+                  ? "text-red-500"
+                  : "text-green-400"
+              }
               icon={<AlertCircle className="w-4 h-4" />}
               desc="Rows with errors"
             />
             <SimpleStatCard
-              label="Null Columns"
+              label="Empty Columns"
               value={previewMetadata?.structural_audit?.null_cols ?? 0}
-              color="text-red-400"
+              color={
+                (previewMetadata?.structural_audit?.null_cols ?? 0) > 0
+                  ? "text-red-500"
+                  : "text-green-400"
+              }
               icon={<Binary className="w-4 h-4" />}
-              desc="Empty columns"
+              desc="Columns with no data"
             />
             <SimpleStatCard
-              label="Wrong Types"
+              label="Format Errors"
               value={previewMetadata?.audit_metrics?.wrong_types ?? 0}
-              color="text-cyan-400"
+              color={
+                (previewMetadata?.audit_metrics?.wrong_types ?? 0) > 0
+                  ? "text-red-500"
+                  : "text-green-400"
+              }
               icon={<AlertTriangle className="w-4 h-4" />}
-              desc="Formatting issues"
+              desc="Needs cleanup"
             />
           </div>
 
-          {/* About this Data Section */}
           <div className="bg-avis-secondary/60 border border-avis-border/80 rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden group">
             <div className="flex items-center gap-4 mb-6">
               <div className="p-3 bg-avis-accent-indigo/10 rounded-xl text-avis-accent-indigo">
@@ -241,7 +254,7 @@ const DatasetsPage: React.FC = () => {
                     </span>{" "}
                     file. It has{" "}
                     <span className="text-white">
-                      {currentDataset.row_count}
+                      {currentDataset.row_count.toLocaleString()}
                     </span>{" "}
                     rows and{" "}
                     <span className="text-white">
@@ -288,7 +301,6 @@ const DatasetsPage: React.FC = () => {
   );
 };
 
-// SIMPLE HELPER COMPONENTS
 const StageIndicator = ({
   active,
   label,
