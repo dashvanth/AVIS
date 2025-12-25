@@ -1,3 +1,4 @@
+// frontend/src/pages/AuthPage.tsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -12,7 +13,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { login, signup } from "../services/api"; // Ensure these are imported
+import { login, signup } from "../services/api";
 
 const AuthPage: React.FC = () => {
   const navigate = useNavigate();
@@ -25,7 +26,6 @@ const AuthPage: React.FC = () => {
     name: "",
     email: "",
     password: "",
-    remember: false,
   });
 
   const toggleMode = () => {
@@ -35,9 +35,7 @@ const AuthPage: React.FC = () => {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value =
-      e.target.type === "checkbox" ? e.target.checked : e.target.value;
-    setFormData({ ...formData, [e.target.name]: value });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
     setError(null);
   };
 
@@ -47,25 +45,38 @@ const AuthPage: React.FC = () => {
     setError(null);
 
     try {
+      let response;
       if (isLogin) {
-        // Actual Backend Login (Functionality 7)
-        const response = await login(formData.email, formData.password);
-        localStorage.setItem("token", response.access_token);
-        localStorage.setItem("userName", response.user.full_name);
+        // Standard user authentication
+        response = await login(formData.email, formData.password);
       } else {
-        // Actual Backend Signup (Functionality 7)
-        await signup(formData.email, formData.password, formData.name);
-        setIsLogin(true); // Switch to login after successful signup
-        setError("Account created! Please sign in.");
-        setIsLoading(false);
-        return;
+        // User registration: Backend now returns token immediately for redirect
+        response = await signup(
+          formData.email,
+          formData.password,
+          formData.name
+        );
       }
+
+      // Store persistent session data
+      localStorage.setItem("token", response.access_token);
+      localStorage.setItem("userName", response.user_name);
+
+      // IMMEDIATE REDIRECTION: Navigate to the Dashboard Hub
       navigate("/app");
     } catch (err: any) {
-      setError(
-        err.response?.data?.detail ||
-          "Authentication failed. Please check your credentials."
-      );
+      // Safe error extraction to prevent React "Objects not valid" crashes
+      const errorDetail = err.response?.data?.detail;
+
+      if (Array.isArray(errorDetail)) {
+        setError(errorDetail[0].msg || "Input validation failed.");
+      } else {
+        setError(
+          typeof errorDetail === "string"
+            ? errorDetail
+            : "Authentication failed. Please verify your credentials."
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +84,7 @@ const AuthPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-avis-primary flex items-stretch overflow-hidden">
-      {/* Left Side: Educational Messaging */}
+      {/* Left Side: Professional Branding & Insight */}
       <div className="hidden lg:flex w-1/2 relative bg-avis-primary flex-col justify-between p-12 border-r border-avis-border/30">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-avis-accent-indigo opacity-10 blur-[150px] rounded-full -mt-20 -mr-20"></div>
 
@@ -85,35 +96,35 @@ const AuthPage: React.FC = () => {
             <div className="p-2 rounded-xl bg-gradient-to-br from-avis-accent-indigo to-avis-accent-cyan">
               <Zap className="h-6 w-6 text-white" />
             </div>
-            <h1 className="text-2xl font-black tracking-tighter text-white">
-              A.V.I.S.
+            <h1 className="text-2xl font-black tracking-tighter text-white uppercase italic">
+              A.V.I.I.S.
             </h1>
           </div>
         </div>
 
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-avis-accent-cyan/10 border border-avis-accent-cyan/20 text-avis-accent-cyan text-[10px] font-bold uppercase tracking-widest mb-6">
-            <ShieldCheck className="w-3 h-3" /> Secure Access Only
+            <ShieldCheck className="w-3 h-3" /> Encrypted Access
           </div>
           <h2 className="text-4xl font-black text-white leading-tight mb-6 tracking-tighter">
-            Your data journey <br />
+            Analytical Intelligence <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-avis-accent-indigo to-avis-accent-cyan">
               starts here
             </span>
             .
           </h2>
-          <p className="text-lg text-avis-text-secondary max-w-md opacity-80">
-            Join A.V.I.S. to experience guided analysis where every step is
-            explained and no logic is hidden.
+          <p className="text-lg text-avis-text-secondary max-w-md opacity-80 leading-relaxed">
+            Professional-grade data analysis with radical transparency. Sign in
+            to manage your datasets and insights.
           </p>
         </div>
 
-        <div className="relative z-10 text-[10px] font-mono text-avis-text-secondary/40 uppercase tracking-widest">
-          &copy; {new Date().getFullYear()} AVIS PROJECT // SECURE AUTH ENGINE
+        <div className="relative z-10 text-[10px] font-mono text-avis-text-secondary/40 uppercase tracking-[0.3em]">
+          &copy; {new Date().getFullYear()} AVIS PROJECT // SECURE SESSION HUB
         </div>
       </div>
 
-      {/* Right Side: Simple Auth Form */}
+      {/* Right Side: Professional Auth Interface */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative">
         <div className="w-full max-w-md space-y-8 relative z-10">
           <div className="text-center lg:text-left">
@@ -122,27 +133,27 @@ const AuthPage: React.FC = () => {
             </h2>
             <p className="mt-2 text-sm text-avis-text-secondary opacity-70">
               {isLogin
-                ? "Sign in to access your secure dataset hub."
-                : "Start your journey toward honest data analysis."}
+                ? "Sign in to access your analysis dashboard."
+                : "Register to begin your data-driven journey."}
             </p>
           </div>
 
           <div className="bg-avis-secondary/30 backdrop-blur-3xl border border-avis-border/50 rounded-[2rem] p-8 shadow-2xl">
-            {/* Tabs */}
+            {/* Professional Mode Toggles */}
             <div className="flex mb-8 bg-avis-primary/50 rounded-2xl p-1.5 border border-avis-border/30">
               <button
                 onClick={() => !isLogin && toggleMode()}
-                className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-widest rounded-xl transition-all ${
+                className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all ${
                   isLogin
                     ? "bg-avis-accent-indigo text-white shadow-lg"
                     : "text-avis-text-secondary hover:text-white"
                 }`}
               >
-                Log In
+                Sign In
               </button>
               <button
                 onClick={() => isLogin && toggleMode()}
-                className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-widest rounded-xl transition-all ${
+                className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all ${
                   !isLogin
                     ? "bg-avis-accent-indigo text-white shadow-lg"
                     : "text-avis-text-secondary hover:text-white"
@@ -161,7 +172,7 @@ const AuthPage: React.FC = () => {
                     exit={{ opacity: 0, y: -10 }}
                     className="space-y-1"
                   >
-                    <label className="text-[10px] font-bold text-avis-text-secondary uppercase tracking-widest ml-1">
+                    <label className="text-[10px] font-bold text-avis-text-secondary uppercase tracking-widest ml-1 opacity-60">
                       Full Name
                     </label>
                     <div className="relative group">
@@ -174,8 +185,8 @@ const AuthPage: React.FC = () => {
                         required
                         value={formData.name}
                         onChange={handleChange}
-                        className="block w-full pl-11 pr-4 py-3.5 bg-avis-primary/50 border border-avis-border/50 rounded-2xl text-white placeholder-avis-text-secondary/30 focus:ring-2 focus:ring-avis-accent-indigo/50 focus:border-avis-accent-indigo transition-all outline-none text-sm"
-                        placeholder="Enter your name"
+                        className="block w-full pl-11 pr-4 py-3.5 bg-avis-primary/50 border border-avis-border/50 rounded-2xl text-white placeholder-avis-text-secondary/20 focus:ring-2 focus:ring-avis-accent-indigo/50 outline-none text-sm transition-all"
+                        placeholder="John Doe"
                       />
                     </div>
                   </motion.div>
@@ -183,7 +194,7 @@ const AuthPage: React.FC = () => {
               </AnimatePresence>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-avis-text-secondary uppercase tracking-widest ml-1">
+                <label className="text-[10px] font-bold text-avis-text-secondary uppercase tracking-widest ml-1 opacity-60">
                   Email Address
                 </label>
                 <div className="relative group">
@@ -196,14 +207,14 @@ const AuthPage: React.FC = () => {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="block w-full pl-11 pr-4 py-3.5 bg-avis-primary/50 border border-avis-border/50 rounded-2xl text-white placeholder-avis-text-secondary/30 focus:ring-2 focus:ring-avis-accent-indigo/50 focus:border-avis-accent-indigo transition-all outline-none text-sm"
-                    placeholder="name@example.com"
+                    className="block w-full pl-11 pr-4 py-3.5 bg-avis-primary/50 border border-avis-border/50 rounded-2xl text-white placeholder-avis-text-secondary/20 focus:ring-2 focus:ring-avis-accent-indigo/50 outline-none text-sm transition-all"
+                    placeholder="email@example.com"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-avis-text-secondary uppercase tracking-widest ml-1">
+                <label className="text-[10px] font-bold text-avis-text-secondary uppercase tracking-widest ml-1 opacity-60">
                   Password
                 </label>
                 <div className="relative group">
@@ -216,7 +227,7 @@ const AuthPage: React.FC = () => {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className="block w-full pl-11 pr-11 py-3.5 bg-avis-primary/50 border border-avis-border/50 rounded-2xl text-white placeholder-avis-text-secondary/30 focus:ring-2 focus:ring-avis-accent-indigo/50 focus:border-avis-accent-indigo transition-all outline-none text-sm"
+                    className="block w-full pl-11 pr-11 py-3.5 bg-avis-primary/50 border border-avis-border/50 rounded-2xl text-white placeholder-avis-text-secondary/20 focus:ring-2 focus:ring-avis-accent-indigo/50 outline-none text-sm transition-all"
                     placeholder="••••••••"
                   />
                   <button
@@ -237,10 +248,10 @@ const AuthPage: React.FC = () => {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3"
+                  className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3"
                 >
                   <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-                  <p className="text-xs text-red-200 leading-relaxed font-medium">
+                  <p className="text-[11px] text-red-200 leading-relaxed font-bold">
                     {error}
                   </p>
                 </motion.div>
@@ -249,13 +260,13 @@ const AuthPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-4 bg-avis-accent-indigo hover:bg-indigo-500 text-white font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-4 bg-avis-accent-indigo hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    {isLogin ? "Sign In" : "Create Account"}
+                    {isLogin ? "Sign In" : "Create Account"}{" "}
                     <ArrowRight className="h-4 w-4" />
                   </>
                 )}

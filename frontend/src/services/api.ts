@@ -18,7 +18,7 @@ const api = axios.create({
   },
 });
 
-// --- Dataset Ingestion & Orientation (Functionality 1 & 2) ---
+// --- Dataset Ingestion & Orientation ---
 
 /**
  * Uploads a raw file for ingestion and persistent audit logging.
@@ -26,7 +26,6 @@ const api = axios.create({
 export const uploadDataset = async (file: File): Promise<Dataset> => {
   const formData = new FormData();
   formData.append("file", file);
-  // relative path ensures URL becomes localhost:8000/api/datasets/upload
   const response = await api.post<Dataset>("datasets/upload", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
@@ -46,26 +45,32 @@ export const previewDataset = async (file: File): Promise<PreviewData> => {
 };
 
 /**
- * Retrieves existing forensic preview data for ingested relational assets.
+ * Retrieves forensic preview data for an existing dataset.
  */
 export const getDatasetPreview = async (id: number): Promise<PreviewData> => {
   const response = await api.get<PreviewData>(`datasets/${id}/preview`);
   return response.data;
 };
 
+/**
+ * Fetches all persistent dataset records from MySQL.
+ */
 export const getDatasets = async (): Promise<Dataset[]> => {
   const response = await api.get<Dataset[]>("datasets/");
   return response.data;
 };
 
+/**
+ * Prunes a dataset record and its associated physical file.
+ */
 export const deleteDataset = async (id: number): Promise<void> => {
   await api.delete(`datasets/${id}`);
 };
 
-// --- Guided Exploratory Data Analysis (Functionality 3) ---
+// --- Guided Exploratory Data Analysis (EDA) ---
 
 /**
- * Retrieves high-fidelity summary statistics and automated insights.
+ * Retrieves high-fidelity summary statistics and distribution insights.
  */
 export const getEDASummary = async (id: number): Promise<EDASummary> => {
   const response = await api.get<EDASummary>(`eda/${id}/summary`);
@@ -73,7 +78,7 @@ export const getEDASummary = async (id: number): Promise<EDASummary> => {
 };
 
 /**
- * Identifies 'unstructured' gaps and their impact level on reliability.
+ * Identifies and assesses the impact of missing values in the dataset.
  */
 export const getMissingValues = async (id: number): Promise<MissingValue[]> => {
   const response = await api.get<MissingValue[]>(`eda/${id}/missing`);
@@ -81,7 +86,7 @@ export const getMissingValues = async (id: number): Promise<MissingValue[]> => {
 };
 
 /**
- * Fetches relationship discovery matrix and natural language insights.
+ * Retrieves the relationship matrix and Pearson correlation insights.
  */
 export const getCorrelationMatrix = async (
   id: number
@@ -90,10 +95,10 @@ export const getCorrelationMatrix = async (
   return response.data;
 };
 
-// --- Interactive Visualization (Functionality 4) ---
+// --- Interactive Visualization ---
 
 /**
- * Fetches data formatted for dynamic Plotly charting.
+ * Fetches formatted data for dynamic Plotly charting.
  */
 export const getChartData = async (
   id: number,
@@ -111,6 +116,9 @@ export const getChartData = async (
   return response.data;
 };
 
+/**
+ * Retrieves saved dashboard layouts for a specific dataset.
+ */
 export const getDashboards = async (
   datasetId: number
 ): Promise<Dashboard[]> => {
@@ -118,6 +126,9 @@ export const getDashboards = async (
   return response.data;
 };
 
+/**
+ * Persists a custom dashboard configuration.
+ */
 export const saveDashboard = async (
   datasetId: number,
   name: string,
@@ -131,16 +142,16 @@ export const saveDashboard = async (
 };
 
 /**
- * Explicitly exported to resolve module SyntaxErrors in VisualizationDashboard.
+ * Removes a saved dashboard configuration.
  */
 export const deleteDashboard = async (id: number): Promise<void> => {
   await api.delete(`dashboards/${id}`);
 };
 
-// --- Context-Aware AI Assistance (Functionality 5) ---
+// --- Context-Aware AI Assistance ---
 
 /**
- * Explicitly exported to resolve InsightsDashboard import errors.
+ * Retrieves automated findings for the AI Insights dashboard.
  */
 export const getInsights = async (datasetId: number): Promise<any[]> => {
   const response = await api.get<any[]>(`insights/${datasetId}`);
@@ -148,7 +159,7 @@ export const getInsights = async (datasetId: number): Promise<any[]> => {
 };
 
 /**
- * Feeds metadata and EDA results for data-backed AI responses.
+ * Interacts with the LLM Assistant using data-backed context.
  */
 export const sendChatMessage = async (
   datasetId: number,
@@ -161,35 +172,37 @@ export const sendChatMessage = async (
   return response.data;
 };
 
-// --- Secure User Management (Functionality 7) ---
+// --- Simple Authentication Management ---
 
+/**
+ * Authenticates credentials and initiates a session.
+ */
 export const login = async (email: string, password: string): Promise<any> => {
-  const formData = new URLSearchParams();
-  formData.append("username", email);
-  formData.append("password", password);
-
-  const response = await api.post("auth/login", formData, {
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
+  const response = await api.post("auth/login", {
+    email: email,
+    password: password,
   });
   return response.data;
 };
 
+/**
+ * Registers a new user and returns a session token for immediate redirect.
+ */
 export const signup = async (
   email: string,
   password: string,
   fullName: string
 ): Promise<any> => {
-  const response = await api.post("auth/register", {
-    email,
-    password,
-    full_name: fullName,
+  // Requirement: Maps UI 'fullName' to 'name' for backend compatibility
+  const response = await api.post("auth/signup", {
+    name: fullName,
+    email: email,
+    password: password,
   });
   return response.data;
 };
 
-// --- Security Interceptor ---
+// --- Handshake Security Interceptor ---
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {

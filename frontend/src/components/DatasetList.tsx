@@ -137,15 +137,7 @@ const DatasetList: React.FC<DatasetListProps> = ({
                 >
                   <Layout className="w-3 h-3 mr-1.5" /> Visualize
                 </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onForecast(dataset.id);
-                  }}
-                  className="flex items-center justify-center py-2 text-[10px] font-bold text-emerald-300 bg-emerald-900/20 border border-emerald-500/20 rounded-lg hover:bg-emerald-500 hover:text-white transition-all"
-                >
-                  <TrendingUp className="w-3 h-3 mr-1.5" /> Forecast
-                </button>
+
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
