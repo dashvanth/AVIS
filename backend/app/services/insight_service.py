@@ -1,90 +1,63 @@
-import pandas as pd
-import numpy as np
+import os
+import json
+from google import genai
+from google.genai import types
 from sqlmodel import Session
-from app.services.eda_service import get_dataframe
+from app.services import eda_service
 
 def generate_insights(dataset_id: int, session: Session):
-    df = get_dataframe(dataset_id, session)
-    insights = []
+    """
+    Generative Forensic Insights: Uses Gemini to detect patterns beyond simple rules.
+    """
+    # Fetch discovery metrics as context
+    summary = eda_service.get_summary_statistics(dataset_id, session)
+    correlations = eda_service.get_correlation_matrix(dataset_id, session)
     
-    # 1. Missing Value Analysis
-    missing_counts = df.isnull().sum()
-    missing_cols = missing_counts[missing_counts > 0]
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
     
-    if not missing_cols.empty:
-        for col, count in missing_cols.items():
-            pct = (count / len(df)) * 100
-            if pct > 50:
-                insights.append({
-                    "type": "recommendation",
-                    "severity": "high",
-                    "column": col,
-                    "message": f"Column '{col}' has {pct:.1f}% missing values. Consider dropping it."
-                })
-            elif pct > 5:
-                insights.append({
-                    "type": "recommendation",
-                    "severity": "medium",
-                    "column": col,
-                    "message": f"Column '{col}' has {pct:.1f}% missing values. Consider imputation (mean/median/mode)."
-                })
-    else:
-         insights.append({
-            "type": "insight",
-            "severity": "low",
-            "column": "Dataset",
-            "message": "Data is clean! No missing values detected."
-        })
+    prompt = f"""
+    Act as a Senior Data Forensic Scientist. Perform a deep audit on the following dataset metrics:
+    
+    SUMMARY METRICS:
+    {json.dumps(summary)}
+    
+    RELATIONSHIP MATRIX:
+    {json.dumps(correlations)}
+    
+    TASK:
+    Generate exactly 6-8 high-fidelity insights. 
+    Focus on: Skewness risks, high-impact missing data, multicollinearity, and grouping variety.
+    
+    RESPONSE FORMAT (STRICT JSON LIST):
+    [
+      {{
+        "type": "insight" | "recommendation",
+        "severity": "low" | "medium" | "high",
+        "column": "Column Name",
+        "message": "Clear, forensic explanation of the finding."
+      }}
+    ]
+    """
 
-    # 2. Correlation Analysis (Numeric)
-    numeric_df = df.select_dtypes(include=[np.number])
-    if not numeric_df.empty and len(numeric_df.columns) > 1:
-        corr_matrix = numeric_df.corr().abs()
-        # Iterate over upper triangle
-        for i in range(len(corr_matrix.columns)):
-            for j in range(i+1, len(corr_matrix.columns)):
-                col1 = corr_matrix.columns[i]
-                col2 = corr_matrix.columns[j]
-                val = corr_matrix.iloc[i, j]
-                
-                if val > 0.85:
-                    insights.append({
-                        "type": "insight",
-                        "severity": "high",
-                        "column": f"{col1} & {col2}",
-                        "message": f"Strong correlation ({val:.2f}) detected between '{col1}' and '{col2}'. This may indicate multicollinearity."
-                    })
-
-    # 3. Skewness Analysis
-    if not numeric_df.empty:
-        skew_vals = numeric_df.skew()
-        for col, val in skew_vals.items():
-            if abs(val) > 1:
-                direction = "right (positive)" if val > 0 else "left (negative)"
-                insights.append({
-                    "type": "insight",
-                    "severity": "medium",
-                    "column": col,
-                    "message": f"Column '{col}' is highly skewed to the {direction} (skew={val:.2f}). Consider Log or Box-Cox transformation for better model performance."
-                })
-
-    # 4. Cardinality Analysis (Categorical)
-    categorical_df = df.select_dtypes(exclude=[np.number])
-    for col in categorical_df.columns:
-        unique_count = df[col].nunique()
-        if unique_count > 50 and unique_count < len(df):
-            insights.append({
-                "type": "recommendation",
-                "severity": "low",
-                "column": col,
-                "message": f"Column '{col}' has high cardinality ({unique_count} unique values). Be careful using One-Hot Encoding."
-            })
-        elif unique_count == 1:
-             insights.append({
-                "type": "recommendation",
-                "severity": "medium",
-                "column": col,
-                "message": f"Column '{col}' has only 1 unique value. It provides no information and can be dropped."
-            })
-
-    return insights
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.0-flash-lite",
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.2 # Lower temperature for forensic consistency
+            ),
+            contents=prompt
+        )
+        
+        # Parse the AI response
+        insights = json.loads(response.text)
+        return insights
+        
+    except Exception as e:
+        # Fallback Heuristics (in case of API rate limits)
+        return [{
+            "type": "recommendation",
+            "severity": "medium",
+            "column": "System",
+            "message": "AI Node is temporarily offline. Heuristic backup: Check for high skewness in numerical columns."
+        }]
