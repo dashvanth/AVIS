@@ -7,6 +7,10 @@ from contextlib import asynccontextmanager
 import time
 import logging
 
+from dotenv import load_dotenv
+load_dotenv() 
+
+from fastapi import FastAPI
 # Initialize Forensic Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("AVIS_ENGINE")

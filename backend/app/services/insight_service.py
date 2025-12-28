@@ -1,32 +1,43 @@
+# backend/app/services/insight_service.py
 import os
 import json
-from google import genai
-from google.genai import types
+from openai import OpenAI  # Use OpenAI SDK for Groq compatibility
 from sqlmodel import Session
 from app.services import eda_service
 
 def generate_insights(dataset_id: int, session: Session):
     """
-    Generative Forensic Insights: Uses Gemini to detect patterns beyond simple rules.
+    Functionality 6: Universal Discovery & Educational Insights.
+    Powered by Groq for high-speed, jargon-free storytelling.
     """
-    # Fetch discovery metrics as context
+    # 1. Fetch rich context from EDA
     summary = eda_service.get_summary_statistics(dataset_id, session)
     correlations = eda_service.get_correlation_matrix(dataset_id, session)
     
-    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    # 2. Initialize the OpenAI client pointing to Groq
+    client = OpenAI(
+        api_key=os.getenv("GROQ_API_KEY"),
+        base_url="https://api.groq.com/openai/v1"
+    )
     
+    # ADVANCED PROMPT: Enforces universal terminology
     prompt = f"""
-    Act as a Senior Data Forensic Scientist. Perform a deep audit on the following dataset metrics:
+    Act as a 'Universal Data Guide' for beginners. 
+    Analyze these metrics and explain them as if talking to someone who has never used a computer.
     
-    SUMMARY METRICS:
+    METRICS:
     {json.dumps(summary)}
-    
-    RELATIONSHIP MATRIX:
     {json.dumps(correlations)}
     
     TASK:
-    Generate exactly 6-8 high-fidelity insights. 
-    Focus on: Skewness risks, high-impact missing data, multicollinearity, and grouping variety.
+    Generate exactly 6 insights. 
+    STRICTLY AVOID: 'Skewness', 'Multicollinearity', 'Pearson', 'Standard Deviation', 'Variance'.
+    USE INSTEAD: 'Uneven Pattern', 'Overlapping Info', 'Strong Connection', 'Spread of Data'.
+    
+    For each insight, explain: 
+    1. The Headline (What was found?)
+    2. The Reason (Why should I care?)
+    3. The Action (What should I do next?)
     
     RESPONSE FORMAT (STRICT JSON LIST):
     [
@@ -34,30 +45,30 @@ def generate_insights(dataset_id: int, session: Session):
         "type": "insight" | "recommendation",
         "severity": "low" | "medium" | "high",
         "column": "Column Name",
-        "message": "Clear, forensic explanation of the finding."
+        "message": "Simple headline. (New line) Explaining why it's important. (New line) Action to take."
       }}
     ]
     """
 
     try:
-        response = client.models.generate_content(
-            model="gemini-2.0-flash-lite",
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                temperature=0.2 # Lower temperature for forensic consistency
-            ),
-            contents=prompt
+        # 3. Call Groq using a high-performance model
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"}, # Ensures valid JSON output
+            temperature=0.3
         )
         
-        # Parse the AI response
-        insights = json.loads(response.text)
-        return insights
-        
+        # 4. Parse the content from the choices array
+        raw_content = response.choices[0].message.content
+        return json.loads(raw_content)
+
     except Exception as e:
-        # Fallback Heuristics (in case of API rate limits)
+        print(f"Groq Intelligence Error: {str(e)}")
+        # Graceful fallback for the UI
         return [{
-            "type": "recommendation",
+            "type": "insight",
             "severity": "medium",
-            "column": "System",
-            "message": "AI Node is temporarily offline. Heuristic backup: Check for high skewness in numerical columns."
+            "column": "System Node",
+            "message": "Patterns detected! While our AI is summarizing them, look at the Summary page for columns with a wide 'Spread of Data'."
         }]
