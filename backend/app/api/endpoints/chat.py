@@ -9,6 +9,7 @@ router = APIRouter()
 
 class ChatRequest(BaseModel):
     message: str
+    page_context: Optional[Dict[str, Any]] = None
 
 class ChatResponse(BaseModel):
     response: str
@@ -20,4 +21,4 @@ def chat_dataset(
     request: ChatRequest, 
     session: Session = Depends(get_session)
 ):
-    return chat_service.process_message(dataset_id, request.message, session)
+    return chat_service.process_message(dataset_id, request.message, session, request.page_context)

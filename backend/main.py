@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.database import create_db_and_tables
-from app.api.endpoints import datasets, eda, viz, dashboards, auth, insights, chat
+from app.api.endpoints import datasets, eda, viz, auth, insights, chat, preparation, downloads
 from contextlib import asynccontextmanager
 import time
 import logging
@@ -79,15 +79,18 @@ app.include_router(eda.router, prefix="/api/eda", tags=["Discovery Node"])
 # Node 4: Interactive Visualization Engine
 app.include_router(viz.router, prefix="/api/viz", tags=["Visualization Node"])
 
-# Node 4.1: Dashboard Persistence & Snapshots
-app.include_router(dashboards.router, prefix="/api/dashboards", tags=["Persistence Node"])
-
 # Node 7: Secure User Management & Auth
 app.include_router(auth.router, prefix="/api/auth", tags=["Security Node"])
 
 # Node 5 & 6: Context-Aware Intelligence & AI Assistant
 app.include_router(insights.router, prefix="/api/insights", tags=["Intelligence Node"])
 app.include_router(chat.router, prefix="/api/chat", tags=["Assistance Node"])
+
+# Node 8: Data Preparation (Transparent Cleaning)
+app.include_router(preparation.router, prefix="/api/preparation", tags=["Preparation Node"])
+
+# Node 9: Export & Download Center (New)
+app.include_router(downloads.router, prefix="/api/export", tags=["Export Node"])
 
 @app.get("/", tags=["Diagnostic"])
 def read_root():

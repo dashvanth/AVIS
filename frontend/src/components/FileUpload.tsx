@@ -2,11 +2,9 @@ import React, { useCallback, useState } from "react";
 import {
   UploadCloud,
   AlertCircle,
-  Loader2,
-  FileCheck,
-  Cpu,
   Database,
-  ShieldCheck,
+  FileCheck,
+  FileX
 } from "lucide-react";
 import { uploadDataset, previewDataset } from "../services/api";
 import type { Dataset, PreviewData } from "../types";
@@ -34,38 +32,51 @@ const FileUpload: React.FC<FileUploadProps> = ({
     setIsDragging(e.type === "dragenter" || e.type === "dragover");
   }, []);
 
+  const validateFile = (file: File): string | null => {
+    if (file.size === 0) return "File is empty";
+    if (file.size > 50 * 1024 * 1024) return "File size is too large (Max 50MB)";
+    return null;
+  };
+
   const processFile = async (file: File) => {
+    // 1. Validation
+    const validationError = validateFile(file);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setIsProcessing(true);
     setError(null);
 
     try {
-      // Functionality 1: Live Orientation Steps
-      setProcessStep("Establishing secure handshake...");
+      // Step 1: Read
+      setProcessStep("Reading file...");
       await new Promise((r) => setTimeout(r, 600));
 
-      setProcessStep(
-        `Inference Engine: analyzing .${file.name
-          .split(".")
-          .pop()
-          ?.toUpperCase()}`
-      );
+      // Step 2: Type Check
+      setProcessStep("Checking data types...");
+      await new Promise((r) => setTimeout(r, 600));
 
       if (onPreview) {
-        // Transparency Audit Mode (Functionality 2)
         const previewData = await previewDataset(file);
-        setProcessStep("Relational mapping complete.");
+        setProcessStep("Preparing preview...");
         await new Promise((r) => setTimeout(r, 400));
         onPreview(file, previewData);
       } else if (autoUpload && onUploadSuccess) {
-        // Persistence Mode (Functionality 7)
-        setProcessStep("Committing to MySQL buffer...");
+        // Step 3: Report Prep
+        setProcessStep("Preparing your report...");
         const dataset = await uploadDataset(file);
+
+        // Step 4: Done
+        setProcessStep("Redirecting to Dataset Understanding Page...");
+        await new Promise((r) => setTimeout(r, 800)); // Give user time to read
         onUploadSuccess(dataset);
       }
     } catch (err: any) {
       const msg =
         err.response?.data?.detail ||
-        "Structural audit failed. Verify file integrity.";
+        "Upload failed. Please check the file format.";
       setError(typeof msg === "string" ? msg : JSON.stringify(msg));
     } finally {
       setIsProcessing(false);
@@ -84,16 +95,15 @@ const FileUpload: React.FC<FileUploadProps> = ({
   );
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
+    <div className="w-full">
       <motion.div
-        whileHover={{ scale: 1.005 }}
-        whileTap={{ scale: 0.995 }}
-        className={`relative group border-2 border-dashed rounded-[2.5rem] p-16 transition-all duration-500 cursor-pointer overflow-hidden
-                    ${
-                      isDragging
-                        ? "border-avis-accent-indigo bg-avis-accent-indigo/10 shadow-[0_0_50px_rgba(99,102,241,0.2)]"
-                        : "border-avis-border bg-avis-secondary/30 hover:border-avis-accent-indigo/40 hover:bg-avis-secondary/50"
-                    }`}
+        whileHover={{ scale: 1.002 }}
+        whileTap={{ scale: 0.998 }}
+        className={`relative group border-2 border-dashed rounded-[2rem] p-12 transition-all duration-300 cursor-pointer overflow-hidden min-h-[400px] flex flex-col items-center justify-center
+                    ${isDragging
+            ? "border-indigo-500 bg-indigo-500/10 shadow-[0_0_50px_rgba(99,102,241,0.2)]"
+            : "border-slate-700 bg-slate-900/30 hover:border-indigo-500/40 hover:bg-slate-800/50"
+          }`}
         onDragEnter={handleDrag}
         onDragOver={handleDrag}
         onDragLeave={handleDrag}
@@ -113,76 +123,56 @@ const FileUpload: React.FC<FileUploadProps> = ({
           accept=".csv,.xlsx,.xls,.json,.xml"
         />
 
-        {/* Decorative Tech Elements */}
-        <div className="absolute top-4 left-4 opacity-20">
-          <Cpu className="w-4 h-4 text-avis-accent-indigo" />
-        </div>
-        <div className="absolute bottom-4 right-4 opacity-20">
-          <ShieldCheck className="w-4 h-4 text-avis-accent-cyan" />
-        </div>
-
-        <div className="flex flex-col items-center text-center space-y-8 relative z-10">
+        <div className="flex flex-col items-center text-center space-y-6 relative z-10">
           <div
-            className={`p-8 rounded-[2rem] transition-all duration-700 bg-avis-primary border border-avis-border
-                        ${
-                          isDragging
-                            ? "rotate-[360deg] scale-110 border-avis-accent-indigo"
-                            : "group-hover:-translate-y-2"
-                        }`}
+            className={`p-6 rounded-2xl transition-all duration-500 bg-slate-800 border border-white/5
+                        ${isDragging
+                ? "scale-110 border-indigo-500 shadow-lg shadow-indigo-500/20"
+                : "group-hover:-translate-y-1"
+              }`}
           >
             <UploadCloud
-              className={`w-14 h-14 ${
-                isDragging
-                  ? "text-avis-accent-indigo"
-                  : "text-avis-text-secondary group-hover:text-avis-accent-indigo"
-              }`}
+              className={`w-10 h-10 ${isDragging
+                  ? "text-indigo-400"
+                  : "text-slate-400 group-hover:text-indigo-400"
+                }`}
             />
           </div>
 
-          <div className="space-y-3">
-            <h3 className="text-3xl font-black text-white tracking-tighter">
-              {isDragging ? "Release Asset" : "Initialize Asset"}
+          <div className="space-y-2">
+            <h3 className="text-2xl font-bold text-white">
+              {isDragging ? "Drop file to upload" : "Drag and drop your dataset file here"}
             </h3>
-            <p className="text-sm text-avis-text-secondary max-w-xs mx-auto leading-relaxed">
-              Drag & drop your unstructured matrix (CSV, Excel, JSON, XML) to
-              begin orientation.
-            </p>
+            <p className="text-sm text-slate-400">or click to browse from your computer</p>
           </div>
 
-          <div className="flex items-center gap-3 pt-4">
-            {["CSV", "EXCEL", "JSON", "XML"].map((fmt) => (
-              <span
-                key={fmt}
-                className="px-4 py-1.5 bg-avis-primary/80 border border-avis-border/60 rounded-xl text-[10px] font-black text-avis-text-secondary tracking-widest hover:text-avis-accent-cyan hover:border-avis-accent-cyan/40 transition-colors"
-              >
-                {fmt}
-              </span>
-            ))}
+          <div className="text-xs text-slate-500 font-medium pt-4 border-t border-white/5 w-full max-w-[200px]">
+            Up to 50 MB • Only one file
           </div>
         </div>
 
-        {/* ADVANCED: Processing Overlay (Functionality 3) */}
+        {/* PROCESSING OVERLAY */}
         <AnimatePresence>
           {isProcessing && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-avis-primary/95 backdrop-blur-md z-30 flex flex-col items-center justify-center space-y-6"
+              className="absolute inset-0 bg-slate-950/95 backdrop-blur-md z-30 flex flex-col items-center justify-center space-y-6"
             >
               <div className="relative">
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                  className="w-24 h-24 border-t-2 border-r-2 border-avis-accent-indigo rounded-full"
+                  className="w-20 h-20 border-t-2 border-r-2 border-indigo-500 rounded-full"
                 />
-                <Database className="w-8 h-8 text-avis-accent-indigo absolute inset-0 m-auto animate-pulse" />
+                <FileCheck className="w-8 h-8 text-indigo-400 absolute inset-0 m-auto animate-pulse" />
               </div>
-              <div className="text-center space-y-2">
-                <p className="text-lg font-black text-white uppercase tracking-widest italic">
-                  A.V.I.S Processing
+              <div className="text-center space-y-1">
+                <p className="text-lg font-bold text-white">
+                  File Received
                 </p>
-                <p className="text-xs font-mono text-avis-accent-cyan animate-pulse">
+                <p className="text-sm text-indigo-300 animate-pulse">
                   {processStep}
                 </p>
               </div>
@@ -191,21 +181,23 @@ const FileUpload: React.FC<FileUploadProps> = ({
         </AnimatePresence>
       </motion.div>
 
-      {/* ERROR ENGINE */}
+      {/* ERROR MESSAGE */}
       <AnimatePresence>
         {error && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mt-6 p-5 bg-red-500/5 border border-red-500/20 rounded-2xl flex items-start gap-4 shadow-2xl overflow-hidden"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-4"
           >
-            <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="text-xs font-black text-red-500 uppercase tracking-widest">
-                Handshake Failed
+            <div className="p-2 bg-red-500/10 rounded-lg">
+              <FileX className="w-5 h-5 text-red-400" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-red-400">
+                Upload Failed
               </p>
-              <p className="text-sm text-red-200/80 leading-relaxed font-medium">
+              <p className="text-xs text-red-200/70 mt-0.5">
                 {error}
               </p>
             </div>

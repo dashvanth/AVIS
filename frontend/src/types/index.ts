@@ -9,6 +9,37 @@ export interface ProcessingStep {
   reason: string;
 }
 
+// GLASS BOX TYPES (Phase 8)
+export interface DataIssue {
+  issue_type: "Missing Value" | "Wrong Data Type";
+  column_name: string;
+  explanation: string;
+  severity: "High" | "Medium" | "Low";
+  affected_rows?: number[]; // Added for specific problem drill-down
+}
+
+export interface ScoreFactor {
+  reason: string;
+  score_change: number; // e.g. -10
+  explanation: string;
+}
+
+export interface DatasetReadiness {
+  status: "Ready" | "Needs Cleaning";
+  explanation: string;
+}
+
+export interface DatasetExplanation {
+  description: string;
+  usage_examples: string[];
+}
+
+export interface ColumnTypeInfo {
+  column_name: string;
+  representation: string; // e.g. "Number", "Text", "Date"
+  data_type: string;      // e.g. "int64", "object"
+}
+
 /**
  * Accurate raw metrics captured before cleaning to ensure radical transparency.
  */
@@ -47,6 +78,7 @@ export interface QualityScore {
   rating: "Optimal" | "Stable" | "Unstructured" | "Critical";
   density?: string;
   issues: string[];
+  score_breakdown?: ScoreFactor[]; // Added for Glass Box
 }
 
 export interface Dataset {
@@ -65,6 +97,20 @@ export interface Dataset {
   created_at: string;
 }
 
+export interface ForensicTraceItem {
+  timestamp: number;
+  step: string;
+  code: string;
+  result: string;
+}
+
+export interface IngestionInsight {
+  type: "Purpose" | "Quality" | "Readiness";
+  title: string;
+  icon: string;
+  desc: string;
+}
+
 export interface PreviewData {
   filename: string;
   file_type: string;
@@ -78,6 +124,15 @@ export interface PreviewData {
   structural_audit: StructuralAudit;
   audit_metrics: AuditMetrics;
   processing_log?: string;
+  forensic_trace?: ForensicTraceItem[]; // Legacy Trace
+  ingestion_insights?: IngestionInsight[];
+
+  // Phase 8: Glass Box Fields
+  column_types?: ColumnTypeInfo[];
+  data_issues?: DataIssue[];
+  score_breakdown?: ScoreFactor[];
+  dataset_explanation?: DatasetExplanation;
+  readiness?: DatasetReadiness;
 }
 
 /**
@@ -93,22 +148,19 @@ export interface NumericSummary {
   "50%": number;
   "75%": number;
   max: number;
-  insight: string; // Automated explanation of the distribution
+  skew?: number; // Added for Glass Box
+  insight: string;
+  logic_desc?: string; // Added for Glass Box
 }
 
-/**
- * Advanced Categorical Summary: Includes diversity indexing.
- */
 export interface CategoricalSummary {
   column: string;
   unique_count: number;
   top_values: Record<string, number>;
-  diversity_index: string; // Human-readable variety score
+  diversity_index: string;
+  logic_desc?: string; // Added for Glass Box
 }
 
-/**
- * Full EDA payload returned by the Discovery Engine.
- */
 export interface EDASummary {
   numeric: NumericSummary[];
   categorical: CategoricalSummary[];
@@ -116,55 +168,10 @@ export interface EDASummary {
   total_columns: number;
 }
 
-/**
- * Relationship Discovery Payload: Explains connections between variables.
- */
 export interface CorrelationData {
   matrix: Record<string, any>[];
-  top_discoveries: string[]; // List of natural language insights
-}
-
-export interface MissingValue {
-  column: string;
-  missing_count: number;
-  missing_percentage: number;
-  impact_level: string; // Simple "Low/High" impact label
-}
-
-export interface Dashboard {
-  id: number;
-  name: string;
-  dataset_id: number;
-  layout_config: string;
-  created_at: string;
-}
-// frontend/src/types/index.ts update
-
-export interface StructuralAudit {
-  total_nulls: number;
-  null_rows: number;
-  null_cols: number;
-  duplicates: number; // Added forensic tracking
-}
-
-export interface NumericSummary {
-  column: string;
-  count: number;
-  mean: number;
-  std: number;
-  min: number;
-  "25%": number;
-  "50%": number;
-  "75%": number;
-  max: number;
-  insight: string; // Explains 'Heavily Skewed' or 'Stable' in simple words
-}
-
-export interface CategoricalSummary {
-  column: string;
-  unique_count: number;
-  top_values: Record<string, number>;
-  diversity_index: string; // Explains grouping patterns to users
+  top_discoveries: string[];
+  logic_desc?: string; // Added for Glass Box
 }
 
 export interface MissingValue {
@@ -174,7 +181,71 @@ export interface MissingValue {
   impact_level: "Low Impact" | "Medium Impact" | "High Anomaly"; // Forensic classification
 }
 
-export interface CorrelationData {
-  matrix: Record<string, any>[];
-  top_discoveries: string[]; // List of natural language insights
+export interface Dashboard {
+  id: number;
+  name: string;
+  dataset_id: number;
+  layout_config: string;
+  created_at: string;
+}
+export interface PreparationSuggestions {
+  missing_values: { column: string; count: number }[];
+  wrong_types: { column: string; detected: string; expected: string }[];
+  duplicates: { count: number };
+  suggestions: {
+    fill_missing: Record<string, string[]>;
+    convert_types: Record<string, string[]>;
+    remove_duplicates: string[];
+  };
+}
+
+// Phase 8: Research-Level Insights (Final)
+export interface InsightIssue {
+  title: string;
+  evidence: string;
+  importance: string;
+  recommendation: string;
+  source: string;
+}
+
+export interface InsightPattern {
+  title: string;
+  explanation: string;
+  metric: string;
+}
+
+export interface ResearchInsights {
+  health_score: number;
+  score_breakdown: ScoreFactor[];
+  good_for: string[];
+  not_good_for: string[];
+  issues: {
+    high: InsightIssue[];
+    medium: InsightIssue[];
+    info: InsightIssue[];
+  };
+  patterns: InsightPattern[];
+  system_limits: string[];
+  summary: string;
+}
+
+export interface ResearchReport {
+  identity: {
+    dataset_name: string;
+    rows: number;
+    columns: number;
+    file_type: string;
+    status: string;
+  };
+  methodology: string[];
+  key_findings: string[];
+  readiness: {
+    status: string;
+    statement: string;
+    suitable_for: string[];
+    unsuitable_for: string[];
+  };
+  limitations: string[];
+  recommendations: string[];
+  markdown_content: string;
 }

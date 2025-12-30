@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional, List
 from sqlmodel import Field, SQLModel, Relationship
+from sqlalchemy import Column, Text
 
 class Dataset(SQLModel, table=True):
     """
@@ -28,14 +29,15 @@ class Dataset(SQLModel, table=True):
     characterization: Optional[str] = Field(default="Relational Asset")
     
     # Overall structural health score (0-100)
-    quality_score: float = Field(default=100.0)
+    quality_score: Optional[float] = Field(default=0.0)
+    
+    # RADICAL TRANSPARENCY LOG (Functionality 2) - Stored as TEXT (MySQL)
+    processing_log: Optional[str] = Field(default="[]", sa_column=Column(Text), description="JSON string of audit log")
+    forensic_trace: Optional[str] = Field(default="[]", sa_column=Column(Text), description="JSON string of forensic trace")
+    ingestion_insights: Optional[str] = Field(default="[]", sa_column=Column(Text), description="JSON string of AI insights")
     
     # --- State Management ---
     analyzed: bool = Field(default=False)
-    
-    # RADICAL TRANSPARENCY LOG (Functionality 2)
-    # Stores a serialized JSON list of ProcessingSteps: action, count, and reason.
-    processing_log: Optional[str] = Field(default=None) 
     
     # --- Ownership & Security (Functionality 7) ---
     # Tracks which node/user initialized the ingestion handshake

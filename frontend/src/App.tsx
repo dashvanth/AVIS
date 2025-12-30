@@ -14,9 +14,11 @@ import DashboardHome from "./pages/DashboardHome";
 import DatasetsPage from "./pages/DatasetsPage";
 import EDADashboard from "./pages/EDADashboard";
 import VisualizationDashboard from "./pages/VisualizationDashboard";
-import InsightsDashboard from "./pages/InsightsDashboard";
+import ExportCenterPage from "./pages/ExportCenterPage";
 import ChatDashboard from "./pages/ChatDashboard";
 import AuthPage from "./pages/AuthPage";
+import DatasetUnderstandingPage from "./pages/DatasetUnderstandingPage";
+import DataPreparationPage from "./pages/DataPreparationPage";
 
 function App() {
   return (
@@ -41,9 +43,11 @@ function App() {
           {/* Default to the EDA Step */}
           <Route index element={<Navigate to="eda" replace />} />
           <Route path="eda" element={<EDADashboardWrapper />} />
+          <Route path="prepare" element={<DataPreparationPageWrapper />} />
           <Route path="viz" element={<VisualizationDashboardWrapper />} />
-          <Route path="insights" element={<InsightsDashboardWrapper />} />
+          <Route path="export" element={<ExportCenterPageWrapper />} />
           <Route path="chat" element={<ChatDashboardWrapper />} />
+          <Route path="understanding" element={<DatasetUnderstandingPage />} />
         </Route>
 
         {/* Fallback */}
@@ -57,8 +61,7 @@ function App() {
  * to a number and passed correctly to the feature pages.
  */
 const EDADashboardWrapper = () => {
-  const { id } = useParams<{ id: string }>();
-  return <EDADashboard datasetId={Number(id)} />;
+  return <EDADashboard />;
 };
 
 const VisualizationDashboardWrapper = () => {
@@ -66,14 +69,16 @@ const VisualizationDashboardWrapper = () => {
   return <VisualizationDashboard datasetId={Number(id)} />;
 };
 
-const InsightsDashboardWrapper = () => {
-  const { id } = useParams<{ id: string }>();
-  return <InsightsDashboard datasetId={Number(id)} />;
+const ExportCenterPageWrapper = () => {
+  return <ExportCenterPage />;
 };
 
 const ChatDashboardWrapper = () => {
-  const { id } = useParams<{ id: string }>();
-  return <ChatDashboard datasetId={Number(id)} />;
+  return <ChatDashboard />;
+};
+
+const DataPreparationPageWrapper = () => {
+  return <DataPreparationPage />;
 };
 
 export default App;

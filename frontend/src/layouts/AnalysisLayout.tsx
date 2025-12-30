@@ -1,21 +1,27 @@
 // frontend/src/layouts/AnalysisLayout.tsx
 import React, { useEffect, useState } from "react";
-import { Outlet, NavLink, useParams, useNavigate } from "react-router-dom";
+import { Outlet, NavLink, useParams, useNavigate, useLocation } from "react-router-dom";
 import {
+  ArrowLeft,
+  ShieldCheck,
+  Zap,
+  Layout,
   Search,
   PieChart,
   Lightbulb,
   MessageSquare,
-  ArrowLeft,
-  ShieldCheck,
-  Zap,
+  LogOut,
+  ChevronRight,
+  Package
 } from "lucide-react";
 import { getDatasets } from "../services/api";
 import type { Dataset } from "../types";
+import FloatingChat from "../components/FloatingChat";
 
 const AnalysisLayout: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [dataset, setDataset] = useState<Dataset | null>(null);
 
   useEffect(() => {
@@ -32,109 +38,130 @@ const AnalysisLayout: React.FC = () => {
     fetchDataset();
   }, [id]);
 
+  const steps = [
+    { id: "understanding", label: "Understanding", path: `/dashboard/${id}/understanding`, icon: Layout },
+    { id: "eda", label: "EDA", path: `/dashboard/${id}/eda`, icon: Search },
+    { id: "prepare", label: "Prepare", path: `/dashboard/${id}/prepare`, icon: ShieldCheck },
+    { id: "viz", label: "Visualization", path: `/dashboard/${id}/viz`, icon: PieChart },
+    { id: "export", label: "Download", path: `/dashboard/${id}/export`, icon: Package },
+    { id: "chat", label: "Chat", path: `/dashboard/${id}/chat`, icon: MessageSquare },
+  ];
+
+  // Helper to determine step status
+  const getStepStatus = (index: number) => {
+    const currentPath = location.pathname;
+    const currentStepIndex = steps.findIndex(step => currentPath.includes(step.id));
+
+    // If exact match fails (e.g. root dashboard path), default to first step or handle gracefully
+    // specific logic: if currentStepIndex is -1, maybe we are at root /dashboard/:id -> which redirects to eda usually, but let's be safe.
+    // Actually, usually one route is active.
+
+    if (index === currentStepIndex) return "active";
+    if (index < currentStepIndex) return "completed";
+    return "future";
+  };
+
   return (
-    <div className="flex h-screen bg-avis-primary overflow-hidden">
-      {/* Advanced Premium Sidebar */}
-      <aside className="w-72 bg-avis-secondary border-r border-avis-border flex flex-col z-20 shadow-2xl">
-        <div className="p-6 border-b border-avis-border bg-gradient-to-br from-avis-accent-indigo/5 to-transparent">
+    <div className="flex flex-col h-screen bg-avis-primary overflow-hidden selection:bg-indigo-500/30">
+      {/* COMMAND HUB TOP NAVIGATION */}
+      <header className="h-16 flex items-center justify-between px-6 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 z-50 shrink-0">
+
+        {/* LEFT: IDENTITY & CONTEXT */}
+        <div className="flex items-center gap-6">
+          {/* Logo / Home */}
           <button
             onClick={() => navigate("/app")}
-            className="flex items-center text-[10px] font-black text-avis-text-secondary hover:text-avis-accent-indigo transition-all mb-4 uppercase tracking-[0.2em]"
+            className="flex items-center gap-2 group"
           >
-            <ArrowLeft className="w-3 h-3 mr-2" />
-            Exit to Hub
+            <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform">
+              <Zap className="w-4 h-4 text-white fill-white" />
+            </div>
           </button>
-          <div className="flex items-center gap-2 text-avis-accent-indigo mb-1">
-            <Zap className="w-3 h-3" />
-            <span className="text-[10px] font-black uppercase tracking-widest">
-              Active Session
-            </span>
+
+          {/* Divider */}
+          <div className="h-8 w-px bg-white/10" />
+
+          {/* Dataset Info */}
+          <div>
+            <h1 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+              {dataset?.filename || "Loading..."}
+            </h1>
+
+            {/* Context Badge */}
+            {dataset && (
+              <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono mt-0.5">
+                <span>{dataset.row_count.toLocaleString()} rows</span>
+                <span className="text-slate-700">•</span>
+                <span>{dataset.column_count} cols</span>
+                <span className="text-slate-700">•</span>
+                <span className={`font-bold ${(dataset.quality_score || 0) > 80 ? "text-emerald-400" : "text-amber-400"
+                  }`}>
+                  Quality: {dataset.quality_score || "N/A"}
+                </span>
+              </div>
+            )}
           </div>
-          <h2
-            className="font-black text-white text-xl leading-tight truncate italic"
-            title={dataset?.filename}
-          >
-            {dataset?.filename || "Loading..."}
-          </h2>
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-8 px-4 space-y-2">
-          <SidebarLink
-            to={`/dashboard/${id}/eda`}
-            icon={<Search className="w-5 h-5" />}
-            label="Step-by-Step EDA"
-          />
-          <SidebarLink
-            to={`/dashboard/${id}/viz`}
-            icon={<PieChart className="w-5 h-5" />}
-            label="Visual Studio"
-          />
-          <SidebarLink
-            to={`/dashboard/${id}/insights`}
-            icon={<Lightbulb className="w-5 h-5" />}
-            label="Forensic Insights"
-          />
-          <SidebarLink
-            to={`/dashboard/${id}/chat`}
-            icon={<MessageSquare className="w-5 h-5" />}
-            label="AI Assistant"
-          />
+        {/* CENTER: STEP INDICATOR */}
+        <nav className="hidden lg:flex items-center bg-white/5 rounded-full p-1 border border-white/5">
+          {steps.map((step, idx) => {
+            const status = getStepStatus(idx);
+            const isLast = idx === steps.length - 1;
+
+            return (
+              <div key={step.id} className="flex items-center">
+                <NavLink
+                  to={step.path}
+                  title={status === "future" ? "Recommended: Complete previous steps first" : ""}
+                  className={({ isActive }) => `
+                    relative px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all
+                    ${isActive
+                      ? "bg-avis-accent-indigo text-white shadow-lg shadow-indigo-500/20"
+                      : status === "future"
+                        ? "text-slate-600 hover:text-slate-500 cursor-not-allowed opacity-60"
+                        : "text-slate-400 hover:text-white hover:bg-white/5"
+                    }
+                  `}
+                >
+                  {/* Icon */}
+                  <step.icon className={`w-3 h-3 ${status === "active" ? "text-indigo-200" : "currentColor"}`} />
+
+                  {/* Label */}
+                  <span className={status === "future" ? "hidden xl:inline" : ""}>{step.label}</span>
+                </NavLink>
+
+                {/* Connector Line */}
+                {!isLast && (
+                  <div className="w-4 h-px bg-white/5 mx-1" />
+                )}
+              </div>
+            );
+          })}
         </nav>
 
-        {/* Functionality 2: Integrity Badge */}
-        <div className="p-6 border-t border-avis-border/50 bg-avis-primary/20">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-3 text-[10px] font-black text-avis-accent-success uppercase tracking-widest bg-avis-accent-success/10 p-3 rounded-xl border border-avis-accent-success/20">
-              <ShieldCheck className="w-4 h-4" />
-              Structure Verified
-            </div>
-            <p className="text-[9px] text-avis-text-secondary px-1 italic">
-              Forensic cleaning complete. Ready for discovery.
-            </p>
-          </div>
-        </div>
-      </aside>
+        {/* RIGHT: EXIT CONTROL */}
+        <button
+          onClick={() => navigate("/app")}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+        >
+          <LogOut className="w-4 h-4" />
+          <span className="hidden sm:inline">Exit to Dashboard</span>
+        </button>
+      </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-auto bg-avis-primary relative no-scrollbar">
-        <div className="max-w-[1400px] mx-auto px-8 py-10">
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 overflow-auto bg-slate-950 relative">
+        <div className="w-full min-h-full">
           {/* We pass the dataset metadata down to all child routes via context */}
           <Outlet context={{ dataset }} />
         </div>
       </main>
+
+      {/* Floating Chat Assistant (Global Context Layer) */}
+      <FloatingChat />
     </div>
   );
 };
-
-/**
- * Reusable Sidebar Link Component with active state styling
- */
-const SidebarLink = ({
-  to,
-  icon,
-  label,
-}: {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-}) => (
-  <NavLink
-    to={to}
-    className={({ isActive }) =>
-      `flex items-center px-5 py-4 text-xs font-black uppercase tracking-widest rounded-2xl transition-all group ${
-        isActive
-          ? "bg-avis-accent-indigo text-white shadow-[0_10px_20px_rgba(99,102,241,0.2)] border border-white/10"
-          : "text-avis-text-secondary hover:text-white hover:bg-avis-primary/50"
-      }`
-    }
-  >
-    <span
-      className={`mr-4 transition-transform group-hover:scale-110 group-hover:rotate-3`}
-    >
-      {icon}
-    </span>
-    {label}
-  </NavLink>
-);
 
 export default AnalysisLayout;

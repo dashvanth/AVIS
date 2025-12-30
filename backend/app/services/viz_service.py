@@ -51,8 +51,8 @@ def get_chart_data(dataset_id: int, x_col: str, chart_type: str, y_col: str = No
             if not y_col:
                 raise HTTPException(status_code=400, detail="Scatter plots require an intersect (Y) dimension.")
             
-            # Sampling for high-performance rendering
-            plot_df = df[[x_col, y_col]].dropna().sample(min(len(df), MAX_POINTS))
+            # Sampling for high-performance rendering (Deterministic)
+            plot_df = df[[x_col, y_col]].dropna().sample(min(len(df), MAX_POINTS), random_state=42)
             x_data = plot_df[x_col].tolist()
             y_data = plot_df[y_col].tolist()
             y_label = y_col

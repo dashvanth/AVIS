@@ -2,7 +2,6 @@
 import axios from "axios";
 import type {
   Dataset,
-  Dashboard,
   EDASummary,
   CorrelationData,
   MissingValue,
@@ -116,59 +115,51 @@ export const getChartData = async (
   return response.data;
 };
 
-/**
- * Retrieves saved dashboard layouts for a specific dataset.
- */
-export const getDashboards = async (
-  datasetId: number
-): Promise<Dashboard[]> => {
-  const response = await api.get<Dashboard[]>(`dashboards/${datasetId}`);
-  return response.data;
-};
-
-/**
- * Persists a custom dashboard configuration.
- */
-export const saveDashboard = async (
-  datasetId: number,
-  name: string,
-  config: any
-): Promise<Dashboard> => {
-  const response = await api.post<Dashboard>(`dashboards/${datasetId}`, {
-    name,
-    layout_config: JSON.stringify(config),
-  });
-  return response.data;
-};
-
-/**
- * Removes a saved dashboard configuration.
- */
-export const deleteDashboard = async (id: number): Promise<void> => {
-  await api.delete(`dashboards/${id}`);
-};
-
 // --- Context-Aware AI Assistance ---
 
 /**
  * Retrieves automated findings for the AI Insights dashboard.
  */
-export const getInsights = async (datasetId: number): Promise<any[]> => {
-  const response = await api.get<any[]>(`insights/${datasetId}`);
+import type { ResearchReport } from "../types";
+
+/**
+ * Retrieves automated findings for the AI Insights dashboard.
+ */
+export const getInsights = async (datasetId: number): Promise<ResearchReport> => {
+  const response = await api.get<ResearchReport>(`insights/${datasetId}`);
   return response.data;
 };
 
 /**
  * Interacts with the LLM Assistant using data-backed context.
  */
-export const sendChatMessage = async (
+/**
+ * Interacts with the LLM Assistant using data-backed context.
+ */
+export const chatWithDataset = async (
   datasetId: number,
-  message: string
+  message: string,
+  pageContext?: any
 ): Promise<{ response: string; plot_config?: any }> => {
   const response = await api.post<{ response: string; plot_config?: any }>(
     `chat/${datasetId}`,
-    { message }
+    { message, page_context: pageContext }
   );
+  return response.data;
+};
+
+// --- Data Preparation (Transparent Cleaning) ---
+
+export const getPreparationSuggestions = async (id: number): Promise<any> => {
+  const response = await api.get(`preparation/${id}/suggestions`);
+  return response.data;
+};
+
+export const applyCleaning = async (
+  id: number,
+  config: any
+): Promise<{ new_dataset_id: number; changes: string[] }> => {
+  const response = await api.post(`preparation/${id}/apply`, config);
   return response.data;
 };
 
@@ -210,5 +201,13 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// --- Export & Download Center ---
+
+export const getDownloadUrl = (datasetId: number, type: "data" | "zip", version?: "original" | "prepared"): string => {
+  const baseUrl = `${API_URL}/export/${datasetId}`;
+  if (type === "zip") return `${baseUrl}/zip`;
+  return `${baseUrl}/data?version=${version || "prepared"}`;
+};
 
 export default api;

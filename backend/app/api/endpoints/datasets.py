@@ -88,7 +88,39 @@ def preview_existing_dataset(dataset_id: int, session: Session = Depends(get_ses
         df_full = df.head(100).replace({np.nan: None})
         df_anomaly = anomaly_df.replace({np.nan: None})
         
+        # 4. GLASS BOX UNPACKING: Extract detailed metadata from storage
+        glass_box = {}
+        if dataset.ingestion_insights:
+            try:
+                parsed = json.loads(dataset.ingestion_insights)
+                if isinstance(parsed, dict):
+                    glass_box = parsed
+            except:
+                pass
+
+        # 5. LEGACY LAYER: Generate Insights List for the Frontend Banner
+        insights_list = []
+        if glass_box.get("readiness"):
+            status = glass_box["readiness"]["status"]
+            insights_list.append({
+                "type": "Readiness",
+                "title": f"Dataset is {status}",
+                "icon": "ShieldCheck" if status == "Ready" else "AlertTriangle",
+                "desc": glass_box["readiness"]["explanation"]
+            })
+        if glass_box.get("dataset_explanation"):
+             insights_list.append({
+                "type": "Context",
+                "title": "Data Purpose",
+                "icon": "Database",
+                "desc": glass_box["dataset_explanation"]["description"]
+            })
+
         return {
+            "filename": dataset.filename,
+            "file_type": dataset.file_type,
+            "row_count": len(df),
+            "column_count": len(df.columns),
             "columns": list(df.columns),
             "full_data": df_full.to_dict(orient="records"),
             "anomaly_data": df_anomaly.to_dict(orient="records"),
@@ -96,19 +128,27 @@ def preview_existing_dataset(dataset_id: int, session: Session = Depends(get_ses
             "quality_score": calculate_quality_score(df),
             "processing_log": dataset.processing_log,
             
-            # This object maps to the 4 simple cards in DatasetsPage
+            # Glass Box Metadata (Unpacked for Frontend)
+            "column_types": glass_box.get("column_types", []),
+            "data_issues": glass_box.get("data_issues", []),
+            "dataset_explanation": glass_box.get("dataset_explanation"),
+            "readiness": glass_box.get("readiness"),
+            "score_breakdown": glass_box.get("score_breakdown", []),
+            
             "structural_audit": {
-                "total_nulls": total_missing, # Shows exactly 249 for Car Sales
+                "total_nulls": total_missing,
                 "null_rows": null_row_count,
                 "null_cols": null_col_count
             },
             
-            # Simple metadata for the orientation sidebar
             "audit_metrics": {
                 "wrong_types": type_mismatches,
                 "total_entities": len(df),
                 "asset_importance": "Unstructured Data Detected" if total_missing > 0 else "Structured Asset"
-            }
+            },
+            
+            "forensic_trace": json.loads(dataset.forensic_trace) if dataset.forensic_trace else [],
+            "ingestion_insights": insights_list
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Forensic Audit Failed: {str(e)}")

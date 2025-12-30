@@ -1,426 +1,411 @@
 import React, { useEffect, useState, useMemo } from "react";
 import Plot from "react-plotly.js";
+import { Link, useParams } from "react-router-dom";
 import {
   Loader2,
-  Trash2,
   Layout,
   BarChart3,
   PieChart,
   TrendingUp,
   ScatterChart,
-  Zap,
-  AlertCircle,
-  MousePointer2,
-  ShieldCheck,
   Info,
-  Maximize2,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowRight,
+  HelpCircle,
+  MousePointer2,
+  Lightbulb,
+  MessageSquare,
+  Database,
+  Table,
+  FileCheck,
+  ShieldAlert
 } from "lucide-react";
-import {
-  getChartData,
-  getEDASummary,
-  saveDashboard,
-  getDashboards,
-  deleteDashboard,
-} from "../services/api";
-import { motion, AnimatePresence } from "framer-motion";
-import type { Dashboard } from "../types";
+import { motion } from "framer-motion";
+import * as api from "../services/api";
+import type { PreviewData, EDASummary } from "../types";
 
 interface VisualizationDashboardProps {
   datasetId: number;
 }
 
-const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({
-  datasetId,
-}) => {
-  const [loading, setLoading] = useState(false);
-  const [columns, setColumns] = useState<string[]>([]);
+const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({ datasetId }) => {
+  // 🔹 STATE MANAGEMENT
+  const [loading, setLoading] = useState(true);
+  const [rendering, setRendering] = useState(false);
+  const [preview, setPreview] = useState<PreviewData | null>(null);
+  const [edaSummary, setEdaSummary] = useState<EDASummary | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Selection State
+  const [chartType, setChartType] = useState<"bar" | "pie" | "line" | "scatter">("bar");
   const [xColumn, setXColumn] = useState<string>("");
   const [yColumn, setYColumn] = useState<string>("");
-  const [chartType, setChartType] = useState<string>("bar");
   const [chartData, setChartData] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [dashboards, setDashboards] = useState<Dashboard[]>([]);
-  const [dashboardName, setDashboardName] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
 
-  // Load Metadata and Saved Views
+  // 🔹 INITIAL DATA FETCH
   useEffect(() => {
-    const fetchMetadata = async () => {
+    const fetchContext = async () => {
+      if (!datasetId) return;
+      setLoading(true);
       try {
-        const [summary, dashboardsData] = await Promise.all([
-          getEDASummary(datasetId),
-          getDashboards(datasetId),
+        const [previewData, summaryData] = await Promise.all([
+          api.getDatasetPreview(datasetId),
+          api.getEDASummary(datasetId)
         ]);
+        setPreview(previewData);
+        setEdaSummary(summaryData);
 
-        const cols = [
-          ...summary.numeric.map((c: any) => c.column),
-          ...summary.categorical.map((c: any) => c.column),
-        ];
-        setColumns(cols);
-        setDashboards(dashboardsData);
-
-        if (cols.length > 0) setXColumn(cols[0]);
-        if (cols.length > 1) setYColumn(cols[1]);
+        // Auto-select first intelligent default
+        const catCols = summaryData.categorical.map(c => c.column);
+        const numCols = summaryData.numeric.map(c => c.column);
+        if (catCols.length > 0) setXColumn(catCols[0]);
+        if (numCols.length > 0) setYColumn(numCols[0]);
       } catch (err) {
-        setError("Forensic sync failed. Please check backend status.");
+        console.error(err);
+        setError("Failed to load dataset context.");
+      } finally {
+        setLoading(false);
       }
     };
-    if (datasetId) fetchMetadata();
+    fetchContext();
   }, [datasetId]);
 
-  // Fetch High-Fidelity Chart Data
-  const fetchChart = async (x: string, y: string, type: string) => {
-    if (!x) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const yInfo = type === "pie" ? undefined : y;
-      const data = await getChartData(datasetId, x, type, yInfo);
-      setChartData(data);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to render visualization");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // 🔹 CHART RENDERING TRIGGER
   useEffect(() => {
-    if (datasetId && xColumn) fetchChart(xColumn, yColumn, chartType);
+    const renderChart = async () => {
+      if (!datasetId || !xColumn) return;
+      setRendering(true);
+      try {
+        // For Pie charts, Y is optional (uses counts if missing)
+        // For others, Y is usually needed or defaults to count
+        const data = await api.getChartData(datasetId, xColumn, chartType, yColumn || undefined);
+        setChartData(data);
+      } catch (err) {
+        console.error("Render failed:", err);
+      } finally {
+        setRendering(false);
+      }
+    };
+    // Debounce slightly to prevent flicker on rapid selection
+    const timer = setTimeout(renderChart, 300);
+    return () => clearTimeout(timer);
   }, [datasetId, xColumn, yColumn, chartType]);
 
-  // Handle Persistence
-  const handleSaveDashboard = async () => {
-    if (!dashboardName.trim()) return;
-    setIsSaving(true);
-    try {
-      const config = { xColumn, yColumn, chartType };
-      const newDashboard = await saveDashboard(
-        datasetId,
-        dashboardName,
-        config
-      );
-      setDashboards([newDashboard, ...dashboards]);
-      setDashboardName("");
-    } catch (err) {
-      alert("Persistence Failure: Snapshot could not be saved.");
-    } finally {
-      setIsSaving(false);
+  // 🔹 HELPER LOGIC
+  const numericColumns = edaSummary?.numeric.map(c => c.column) || [];
+  const categoricalColumns = edaSummary?.categorical.map(c => c.column) || [];
+  const allColumns = [...categoricalColumns, ...numericColumns];
+
+  // Chart Availability Logic
+  const getChartAvailability = (type: string) => {
+    if (type === "scatter") {
+      return numericColumns.length >= 2
+        ? { allowed: true, reason: "Good for checking correlations." }
+        : { allowed: false, reason: "Requires at least 2 numeric columns." };
     }
-  };
-
-  const handleLoadDashboard = (dashboard: Dashboard) => {
-    const config = JSON.parse(dashboard.layout_config);
-    setXColumn(config.xColumn);
-    setYColumn(config.yColumn);
-    setChartType(config.chartType);
-  };
-
-  const handleDeleteDashboard = async (id: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (window.confirm("Purge this saved view?")) {
-      await deleteDashboard(id);
-      setDashboards((prev) => prev.filter((d) => d.id !== id));
+    if (type === "line") {
+      // Ideally check for time/order, strictly speaking line needs safe order, but for V2 flexible
+      return { allowed: true, reason: "Best for ordered data or trends." };
     }
+    if (type === "pie") {
+      const isCat = categoricalColumns.includes(xColumn);
+      return isCat
+        ? { allowed: true, reason: "Great for showing proportions." }
+        : { allowed: true, reason: "Works best with few categories." };
+    }
+    return { allowed: true, reason: "Standard comparison chart." }; // Bar
   };
 
-  // ADVANCED: Dynamic Logic Explainer (Functionality 6)
-  const getLogicNote = useMemo(() => {
-    if (chartType === "bar")
-      return "Categorical Frequency: Counting occurrences per group.";
-    if (chartType === "pie")
-      return "Proportional Density: Visualizing slice-to-whole ratio.";
-    if (chartType === "scatter")
-      return "Relational Linkage: Plotting raw intersection of two dimensions.";
-    return "Trend Sequence: Analyzing movement across the primary axis.";
-  }, [chartType]);
+  // Axis Recommendation Logic
+  const getXAxisRecommendation = () => {
+    if (!xColumn) return "";
+    const isCat = categoricalColumns.includes(xColumn);
+    return isCat
+      ? "Recommended: This is a categorical label, perfect for grouping."
+      : "Notice: Grouping by numbers can create many bars.";
+  };
+
+  const getYAxisRecommendation = () => {
+    if (!yColumn) return "Recommended: 'Count of Records' is safest for categorical groups.";
+    return "Using Sum/Average. Ensure this makes sense for your data.";
+  };
+
+  const getLogicExplanation = () => {
+    if (!xColumn) return "Waiting for selection...";
+    const base = `1. Grouped data by '${xColumn}'.`;
+    const edaContext = "Consistent with EDA findings.";
+
+    if (chartType === "bar") return `${base} 2. Calculated the size (count) or sum of each group. 3. Drew bars to compare heights. (${edaContext})`;
+    if (chartType === "pie") return `${base} 2. Calculated the percentage of the whole for each group. 3. Drew slices to show proportions.`;
+    if (chartType === "line") return `${base} 2. Connected the data points in order. 3. Showed the trend over the sequence.`;
+    if (chartType === "scatter") return `1. Plotted every single row as a dot. 2. Positioned based on '${xColumn}' (X) and '${yColumn}' (Y). 3. Revealed the relationship pattern.`;
+    return "";
+  };
+
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#0B0F19]">
+      <Loader2 className="w-16 h-16 text-indigo-500 animate-spin" />
+      <p className="text-indigo-400 mt-4 font-mono text-sm tracking-widest animate-pulse">PREPARING VISUAL LAB...</p>
+    </div>
+  );
+
+  if (error || !preview) return <div className="p-10 text-white text-center">{error}</div>;
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+  const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
 
   return (
-    <div className="max-w-[1600px] mx-auto px-6 py-10 space-y-10 bg-avis-primary min-h-screen">
-      {/* 1. VISUALIZATION HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-avis-border/40 pb-10 gap-6">
-        <div>
-          <div className="flex items-center gap-3 text-avis-accent-indigo text-[10px] font-black uppercase tracking-[0.4em] mb-3">
-            <BarChart3 className="w-4 h-4" /> Visual Studio Node
-          </div>
-          <h2 className="text-5xl font-black text-white tracking-tighter italic">
-            Discovery Graphics
-          </h2>
-          <p className="text-avis-text-secondary mt-3 text-sm font-medium max-w-2xl leading-relaxed">
-            Translate your{" "}
-            <span className="text-white italic">Forensic DNA</span> results into
-            interactive graphics. This stage identifies patterns through visual
-            density rather than raw math.
-          </p>
-        </div>
-        <div className="flex items-center gap-4 bg-avis-accent-success/10 px-6 py-3 rounded-2xl border border-avis-accent-success/20">
-          <ShieldCheck className="w-4 h-4 text-avis-accent-success" />
-          <span className="text-[10px] font-black text-avis-accent-success uppercase tracking-widest">
-            Normalized Data Feed Active
-          </span>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#0B0F19] text-slate-200 font-sans pb-32">
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* 2. ADVANCED CONTROL PANEL */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="p-8 bg-avis-secondary/40 border border-avis-border/60 rounded-[3rem] shadow-2xl space-y-8 backdrop-blur-xl">
-            <div>
-              <label className="block text-[10px] font-black text-avis-text-secondary uppercase tracking-widest mb-6 ml-1">
-                Render Architecture
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <ChartIconBtn
-                  active={chartType === "bar"}
-                  onClick={() => setChartType("bar")}
-                  icon={<BarChart3 />}
-                  label="Bar"
-                />
-                <ChartIconBtn
-                  active={chartType === "pie"}
-                  onClick={() => setChartType("pie")}
-                  icon={<PieChart />}
-                  label="Pie"
-                />
-                <ChartIconBtn
-                  active={chartType === "line"}
-                  onClick={() => setChartType("line")}
-                  icon={<TrendingUp />}
-                  label="Line"
-                />
-                <ChartIconBtn
-                  active={chartType === "scatter"}
-                  onClick={() => setChartType("scatter")}
-                  icon={<ScatterChart />}
-                  label="Scatter"
-                />
-              </div>
-            </div>
+      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-[95%] mx-auto px-6 pt-12 space-y-12">
 
-            <div className="space-y-6 pt-6 border-t border-avis-border/20">
-              <AxisSelect
-                label="Primary Dimension (X)"
-                value={xColumn}
-                onChange={setXColumn}
-                options={columns}
-              />
-              <AxisSelect
-                label="Intersect Dimension (Y)"
-                value={yColumn}
-                onChange={setYColumn}
-                options={columns}
-                disabled={chartType === "pie"}
-              />
+        {/* 🔹 SECTION 1: VISUALIZATION CONTEXT (ENHANCED LINEAGE) */}
+        <motion.section variants={itemVariants} className="flex flex-col md:flex-row justify-between items-end border-b border-white/5 pb-8 gap-6">
+          <div>
+            <div className="flex items-center gap-2 text-indigo-400 text-xs font-black uppercase tracking-[0.3em] mb-3">
+              <Layout className="w-4 h-4" /> Visual Lab
             </div>
-          </div>
-
-          {/* PERSPECTIVE HISTORY */}
-          <div className="p-8 bg-avis-secondary/20 border border-avis-border/40 rounded-[3rem]">
-            <h4 className="text-white font-black text-[10px] uppercase tracking-widest mb-6 flex items-center gap-2">
-              <Layout className="w-4 h-4 text-avis-accent-indigo" /> Saved
-              Perspectives
-            </h4>
-            <div className="space-y-3">
-              {dashboards.length === 0 ? (
-                <p className="text-[10px] text-avis-text-secondary italic px-2">
-                  No snapshots persisted.
-                </p>
-              ) : (
-                dashboards.map((dash) => (
-                  <div
-                    key={dash.id}
-                    onClick={() => handleLoadDashboard(dash)}
-                    className="p-4 bg-avis-primary/40 rounded-2xl border border-avis-border/40 hover:border-avis-accent-indigo/60 cursor-pointer flex justify-between items-center group transition-all"
-                  >
-                    <div className="truncate pr-4">
-                      <p className="text-[11px] font-bold text-white truncate uppercase tracking-tighter">
-                        {dash.name}
-                      </p>
-                      <p className="text-[8px] text-avis-text-secondary font-mono">
-                        NODE_{dash.id.toString().padStart(3, "0")}
-                      </p>
-                    </div>
-                    <Trash2
-                      onClick={(e) => handleDeleteDashboard(dash.id, e)}
-                      className="w-3.5 h-3.5 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                    />
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* 3. FORENSIC CHART CANVAS */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* FUNCTIONALITY 4: NO BLACK-BOX LABEL */}
-          <div className="px-8 py-5 bg-avis-accent-indigo/5 border border-avis-accent-indigo/20 rounded-[2rem] flex items-center gap-5 shadow-inner">
-            <div className="p-2 bg-avis-accent-indigo/20 rounded-lg">
-              <Zap className="w-4 h-4 text-avis-accent-indigo" />
-            </div>
-            <p className="text-[10px] text-avis-text-secondary uppercase font-black tracking-widest leading-relaxed">
-              <span className="text-white">Direct-Feed Logic:</span>{" "}
-              {getLogicNote}
-              <span className="ml-2 text-avis-accent-cyan italic">
-                // Source: Verified Clean Matrix (Step 1)
+            <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-2">
+              Visualizing <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">{preview.filename}</span>
+            </h1>
+            <div className="flex flex-wrap items-center gap-6 text-sm text-slate-400 mt-4">
+              <span className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full"><Table className="w-4 h-4 text-emerald-400" /> {preview.row_count} Rows (0 Removed)</span>
+              <span className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full"><Database className="w-4 h-4 text-emerald-400" /> {preview.column_count} Columns</span>
+              <span className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full font-bold uppercase text-[10px]">
+                <FileCheck className="w-3 h-3" /> Prepared Data
               </span>
-            </p>
+            </div>
           </div>
+        </motion.section>
 
-          <div className="bg-avis-secondary/40 border border-avis-border/60 rounded-[4rem] p-10 min-h-[600px] flex items-center justify-center relative shadow-[0_0_50px_rgba(0,0,0,0.3)] overflow-hidden group">
-            {loading ? (
-              <div className="flex flex-col items-center gap-4">
-                <Loader2 className="w-12 h-12 text-avis-accent-indigo animate-spin opacity-40" />
-                <span className="text-[10px] font-black text-avis-text-secondary uppercase tracking-widest animate-pulse">
-                  Matrix Rendering...
-                </span>
+        {/* 🔹 SECTION 2: EDUCATION */}
+        <motion.section variants={itemVariants}>
+          <div className="p-6 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl flex items-start gap-4">
+            <div className="p-3 bg-indigo-500/20 rounded-xl">
+              <HelpCircle className="w-5 h-5 text-indigo-400" />
+            </div>
+            <div>
+              <h3 className="text-white font-bold mb-1">What does this page do?</h3>
+              <p className="text-sm text-slate-400 leading-relaxed max-w-3xl">
+                This lab helps you see patterns in your data using charts.
+                It does not calculate specific statistics (like averages) but instead shows you the <strong>shape</strong> and <strong>distribution</strong> of your information.
+              </p>
+            </div>
+          </div>
+        </motion.section>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* CONTROLS COLUMN */}
+          <div className="lg:col-span-4 space-y-8">
+
+            {/* 🔹 SECTION 3: CHART SELECTION (ENHANCED AVAILABILITY) */}
+            <motion.section variants={itemVariants} className="bg-slate-900/40 border border-white/5 rounded-[2rem] p-6">
+              <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-4">1. Choose a Chart</h4>
+              <div className="grid grid-cols-1 gap-3">
+                {["bar", "pie", "line", "scatter"].map((type) => {
+                  const { allowed, reason } = getChartAvailability(type);
+                  const icons: any = { bar: BarChart3, pie: PieChart, line: TrendingUp, scatter: ScatterChart };
+                  return (
+                    <ChartOption
+                      key={type}
+                      active={chartType === type}
+                      onClick={() => allowed && setChartType(type as any)}
+                      icon={icons[type]}
+                      label={`${type.charAt(0).toUpperCase() + type.slice(1)} Chart`}
+                      desc={reason}
+                      disabled={!allowed}
+                    />
+                  );
+                })}
               </div>
-            ) : error ? (
-              <div className="flex flex-col items-center gap-4 text-red-400">
-                <AlertCircle className="w-10 h-10" />
-                <p className="text-xs font-bold uppercase tracking-widest">
-                  {error}
+              <div className="mt-4 p-3 bg-white/5 rounded-xl border border-white/5">
+                <p className="text-[10px] text-slate-400 italic">
+                  <Lightbulb className="w-3 h-3 inline mr-1 text-amber-400" />
+                  Based on EDA: Categorical charts (Bar/Pie) are recommended for this dataset.
                 </p>
               </div>
-            ) : chartData ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="w-full h-full"
-              >
-                <Plot
-                  data={chartData.data}
-                  layout={{
-                    ...chartData.layout,
-                    autosize: true,
-                    paper_bgcolor: "rgba(0,0,0,0)",
-                    plot_bgcolor: "rgba(0,0,0,0)",
-                    font: { color: "#94a3b8", family: "Inter, sans-serif" },
-                    margin: { l: 60, r: 40, b: 60, t: 40 },
-                    xaxis: {
-                      gridcolor: "rgba(255,255,255,0.05)",
-                      zerolinecolor: "rgba(255,255,255,0.1)",
-                    },
-                    yaxis: {
-                      gridcolor: "rgba(255,255,255,0.05)",
-                      zerolinecolor: "rgba(255,255,255,0.1)",
-                    },
-                  }}
-                  className="w-full h-[550px]"
-                  useResizeHandler={true}
-                  config={{ displayModeBar: false, responsive: true }}
-                />
-              </motion.div>
-            ) : (
-              <div className="flex flex-col items-center gap-5 opacity-20">
-                <MousePointer2 className="w-16 h-16 text-avis-text-secondary" />
-                <div className="text-center">
-                  <p className="text-sm font-black uppercase tracking-widest text-white mb-2">
-                    Workspace Idle
-                  </p>
-                  <p className="text-[10px] font-bold text-avis-text-secondary uppercase tracking-tighter">
-                    Select dimensions to initiate rendering
-                  </p>
+            </motion.section>
+
+            {/* 🔹 SECTION 4: AXIS SELECTION (ENHANCED RECS) */}
+            <motion.section variants={itemVariants} className="bg-slate-900/40 border border-white/5 rounded-[2rem] p-6">
+              <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-6">2. Configure Axes</h4>
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-xs font-bold text-indigo-300 mb-2">Primary Dimension (X-Axis)</label>
+                  <select
+                    value={xColumn}
+                    onChange={(e) => setXColumn(e.target.value)}
+                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-indigo-500 outline-none"
+                  >
+                    {allColumns.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <p className="text-[10px] text-indigo-300/60 mt-2">{getXAxisRecommendation()}</p>
+                </div>
+                <div className={chartType === 'pie' ? 'opacity-50 pointer-events-none' : ''}>
+                  <label className="block text-xs font-bold text-cyan-300 mb-2">Measure (Y-Axis) <span className="text-[10px] font-normal text-slate-500">(Optional)</span></label>
+                  <select
+                    value={yColumn}
+                    onChange={(e) => setYColumn(e.target.value)}
+                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-indigo-500 outline-none"
+                  >
+                    <option value="">(Auto: Count of Records)</option>
+                    {numericColumns.map(c => <option key={c} value={c}>Sum of {c}</option>)}
+                  </select>
+                  <p className="text-[10px] text-cyan-300/60 mt-2">{getYAxisRecommendation()}</p>
                 </div>
               </div>
-            )}
+            </motion.section>
 
-            {/* Scale Indicator */}
-            <div className="absolute bottom-10 right-10 flex items-center gap-3 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/5">
-              <Maximize2 className="w-3 h-3 text-avis-text-secondary" />
-              <span className="text-[8px] font-black text-avis-text-secondary uppercase tracking-widest">
-                Auto-Scale Active
-              </span>
-            </div>
+            {/* 🔹 SECTION 5: DATA LINEAGE BOX (NEW) */}
+            <motion.section variants={itemVariants} className="p-6 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
+              <div className="flex items-start gap-3">
+                <FileCheck className="w-4 h-4 text-emerald-500 mt-1" />
+                <div>
+                  <h4 className="text-xs font-bold text-emerald-200 mb-1">Data Source: Prepared Dataset</h4>
+                  <ul className="text-[10px] text-emerald-200/70 space-y-1 list-disc pl-4">
+                    <li>Missing values were filled (where approved).</li>
+                    <li>Original file remains unchanged.</li>
+                    <li>No rows were hidden from this view.</li>
+                  </ul>
+                </div>
+              </div>
+            </motion.section>
+
           </div>
 
-          {/* SAVE COMMAND BAR */}
-          <div className="flex items-center gap-4 p-4 bg-avis-secondary/40 border border-avis-border rounded-full shadow-2xl group focus-within:border-avis-accent-indigo transition-all backdrop-blur-md">
-            <div className="p-3 bg-avis-primary rounded-full border border-avis-border/60 text-avis-accent-indigo group-hover:rotate-12 transition-transform">
-              <Zap className="w-4 h-4" />
-            </div>
-            <input
-              value={dashboardName}
-              onChange={(e) => setDashboardName(e.target.value)}
-              placeholder="Label this snapshot (e.g. Price vs Age)..."
-              className="flex-1 bg-transparent border-none focus:ring-0 text-sm font-bold text-white px-4 placeholder:text-avis-text-secondary/30"
-            />
-            <button
-              onClick={handleSaveDashboard}
-              disabled={!dashboardName || isSaving}
-              className="px-12 py-3.5 bg-avis-accent-indigo text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg hover:scale-105 disabled:opacity-30 disabled:hover:scale-100 transition-all"
-            >
-              {isSaving ? "Persisting..." : "Save Perspective"}
-            </button>
+          {/* CANVAS COLUMN */}
+          <div className="lg:col-span-8 space-y-6">
+
+            {/* 🔹 SECTION 6: LOGIC DISCLOSURE */}
+            <motion.section variants={itemVariants}>
+              <div className="px-6 py-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-center gap-4">
+                <div className="p-2 bg-indigo-500/20 rounded-lg">
+                  <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-black tracking-widest text-indigo-300 block mb-1">How this chart was built</span>
+                  <p className="text-sm text-indigo-100 font-mono leading-relaxed">{getLogicExplanation()}</p>
+                </div>
+              </div>
+            </motion.section>
+
+            {/* 🔹 SECTION 7: CHART DISPLAY */}
+            <motion.section variants={itemVariants} className="bg-slate-900/40 border border-white/5 rounded-[3rem] p-8 min-h-[500px] flex items-center justify-center relative backdrop-blur-sm">
+              {rendering ? (
+                <div className="text-center">
+                  <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mx-auto mb-4" />
+                  <p className="text-xs text-slate-500 uppercase tracking-widest">Rendering...</p>
+                </div>
+              ) : chartData ? (
+                <div className="w-full h-full relative z-10">
+                  <Plot
+                    data={chartData.data}
+                    layout={{
+                      ...chartData.layout,
+                      autosize: true,
+                      paper_bgcolor: "rgba(0,0,0,0)",
+                      plot_bgcolor: "rgba(0,0,0,0)",
+                      font: { color: "#94a3b8", family: "Inter" },
+                      margin: { l: 50, r: 20, t: 30, b: 50 },
+                      showlegend: chartType === 'pie',
+                    }}
+                    className="w-full h-[500px]"
+                    useResizeHandler={true}
+                    config={{ displayModeBar: false, responsive: true }}
+                  />
+                  <div className="absolute bottom-2 right-2 px-3 py-1 bg-black/40 rounded-full text-[9px] text-slate-500 border border-white/5">
+                    Auto-scaled for visibility
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center opacity-30">
+                  <MousePointer2 className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+                  <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Select an X-Axis to Begin</p>
+                </div>
+              )}
+            </motion.section>
+
+            {/* 🔹 SECTION 8 & 9: EDUCATIONAL LAYERS (SPLIT) */}
+            <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              {/* Helps With */}
+              <div className="p-6 bg-slate-900/40 border border-white/5 rounded-2xl">
+                <h4 className="text-xs font-black text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                  <Lightbulb className="w-4 h-4" /> This Chart Helps You
+                </h4>
+                <ul className="space-y-2 text-sm text-slate-400">
+                  {chartType === "bar" && <><li>Compare group sizes easily.</li><li>Spot the most frequent categories.</li></>}
+                  {chartType === "pie" && <><li>See how parts make up the hole.</li><li>Visualize dominance of a few groups.</li></>}
+                  {chartType === "line" && <><li>Track trends over time.</li><li>Spot sudden increases or drops.</li></>}
+                  {chartType === "scatter" && <><li>Check if two values are related.</li><li>Identify outliers (unusual points).</li></>}
+                </ul>
+              </div>
+
+              {/* Does Not Help With (Limits) */}
+              <div className="p-6 bg-slate-900/40 border border-white/5 rounded-2xl">
+                <h4 className="text-xs font-black text-amber-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4" /> Does NOT Help With
+                </h4>
+                <ul className="space-y-2 text-sm text-slate-400">
+                  <li>❌ Predicting future values (Forecasting).</li>
+                  <li>❌ Proving cause and effect relationships.</li>
+                </ul>
+              </div>
+
+            </motion.section>
+
+            {/* 🔹 SECTION 10: NEXT ACTIONS */}
+            <motion.section variants={itemVariants}>
+              <div className="p-6 bg-slate-900/40 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-4 text-center">
+                <h4 className="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                  <ArrowRight className="w-4 h-4" /> Analysis Complete?
+                </h4>
+                <p className="text-sm text-slate-500 max-w-lg">
+                  You have visualized the shapes of your data. Now, let the <strong>Insights Engine</strong> explain what these patterns mean in plain English.
+                </p>
+                <div className="flex gap-4 w-full justify-center">
+                  <Link to={`/dashboard/${datasetId}/insights`} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/20 transition-all transform hover:scale-105">
+                    Get AI Insights
+                  </Link>
+                  <Link to={`/dashboard/${datasetId}/chat`} className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold text-sm border border-white/10 transition-all">
+                    Ask Chat about this
+                  </Link>
+                </div>
+              </div>
+            </motion.section>
+
           </div>
         </div>
-      </div>
-
-      {/* FOOTER EXPLAINER */}
-      <div className="p-8 bg-avis-accent-indigo/5 border border-avis-border/40 rounded-[3rem] flex items-start gap-6">
-        <div className="p-3 bg-avis-secondary/50 rounded-2xl border border-avis-border/60">
-          <Info className="w-6 h-6 text-avis-accent-indigo" />
-        </div>
-        <div className="space-y-2">
-          <h4 className="text-white font-black text-xs uppercase tracking-widest">
-            How to use Discovery Graphics:
-          </h4>
-          <p className="text-[11px] text-avis-text-secondary leading-relaxed max-w-4xl italic">
-            Choose an **X-Axis** to define your groups and a **Y-Axis** to
-            measure them. If you see tall bars or rising lines, it confirms the
-            <span className="text-avis-accent-cyan">
-              {" "}
-              Relationship Discovery
-            </span>{" "}
-            identified in the Step-by-Step EDA. Use the **Scatter** option for
-            the most accurate forensic view of how individual entities
-            intersect.
-          </p>
-        </div>
-      </div>
+      </motion.div>
     </div>
   );
 };
 
-const ChartIconBtn = ({ active, icon, label, onClick }: any) => (
+// 🔹 SUB-COMPONENTS
+const ChartOption = ({ active, onClick, icon: Icon, label, desc, disabled, tooltip }: any) => (
   <button
     onClick={onClick}
-    className={`flex flex-col items-center justify-center gap-3 p-5 rounded-[2.5rem] border transition-all ${
-      active
-        ? "bg-avis-accent-indigo border-avis-accent-indigo text-white shadow-[0_10px_30px_rgba(99,102,241,0.3)] scale-110 z-10"
-        : "bg-avis-primary/40 border-avis-border/60 text-avis-text-secondary hover:border-white/20"
-    }`}
+    disabled={disabled}
+    title={tooltip}
+    className={`w-full p-4 rounded-xl border flex items-center gap-4 text-left transition-all ${disabled ? 'opacity-30 cursor-not-allowed bg-transparent border-white/5' :
+        active
+          ? 'bg-indigo-600 border-indigo-500 shadow-lg shadow-indigo-500/20'
+          : 'bg-black/20 border-white/5 hover:bg-white/5 hover:border-white/10'
+      }`}
   >
-    {React.cloneElement(icon, { className: "w-6 h-6" })}
-    <span className="text-[8px] font-black uppercase tracking-widest">
-      {label}
-    </span>
-  </button>
-);
-
-const AxisSelect = ({ label, value, onChange, options, disabled }: any) => (
-  <div
-    className={`space-y-3 ${disabled ? "opacity-20 pointer-events-none" : ""}`}
-  >
-    <label className="text-[9px] font-black text-avis-text-secondary uppercase tracking-[0.2em] ml-2 italic">
-      {label}
-    </label>
-    <div className="relative">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-avis-primary border border-avis-border/60 rounded-2xl px-6 py-4 text-xs text-white font-bold outline-none focus:border-avis-accent-indigo transition-all appearance-none cursor-pointer pr-10"
-      >
-        {options.map((o: any) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
-      <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
-        <Layout className="w-3 h-3 text-avis-text-secondary opacity-40" />
-      </div>
+    <div className={`p-2 rounded-lg ${active ? 'bg-white/20' : 'bg-white/5'}`}>
+      <Icon className={`w-5 h-5 ${active ? 'text-white' : 'text-slate-400'}`} />
     </div>
-  </div>
+    <div>
+      <div className={`text-sm font-bold ${active ? 'text-white' : 'text-slate-200'}`}>{label}</div>
+      <div className={`text-[10px] ${active ? 'text-indigo-200' : 'text-slate-500'}`}>{desc}</div>
+    </div>
+    {active && <CheckCircle2 className="w-5 h-5 text-white ml-auto" />}
+  </button>
 );
 
 export default VisualizationDashboard;

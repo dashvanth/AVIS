@@ -66,6 +66,7 @@ def get_summary_statistics(dataset_id: int, session: Session):
             
             numeric_dict.append({
                 **row.replace({np.nan: None}).to_dict(),
+                "skew": round(skew, 2),
                 "insight": insight,
                 "logic_desc": " | ".join(logic_steps) # Explicit backend steps
             })

@@ -14,38 +14,55 @@ def get_client():
         base_url="https://api.groq.com/openai/v1"
     )
 
-def process_message(dataset_id: int, message: str, session: Session):
+def process_message(dataset_id: int, message: str, session: Session, page_context: dict = None):
     """
     Functionality 5: Context-Aware AI Assistance.
-    Processes natural language queries using high-performance Groq models.
+    Processes natural language queries using high-performance Groq models with page-specific context.
     """
     # 1. Retrieve the dataset record
     dataset = session.get(Dataset, dataset_id)
     if not dataset:
         return {"response": "Relational link failed: Dataset node not found."}
 
-    # Fetch context from the Discovery Engine (EDA Service)
+    # Fetch Contexts
     summary = eda_service.get_summary_statistics(dataset_id, session)
-    correlations = eda_service.get_correlation_matrix(dataset_id, session)
-    
-    client = get_client()
     
     # 2. Build the Intelligence Node prompt with explicit data grounding
+    # We prioritize the PAGE CONTEXT if provided, as it represents what the user is currently looking at.
+    
+    context_str = "User is currently on the Dashboard Overview."
+    if page_context:
+        page_name = page_context.get("page", "Unknown Page")
+        context_str = f"User is currently viewing the '{page_name.upper()}' Page.\n"
+        context_str += f"VISIBLE DATA ON SCREEN: {json.dumps(page_context, indent=2)}"
+
     system_instruction = f"""
-    You are A.V.I.S (Analytical Visual Intelligence System), a forensic data expert.
-    The user is currently analyzing the dataset: '{dataset.filename}'.
+    You are A.V.I.S (Universal Data Guide), a friendly data teacher.
+    Your student knows NOTHING about math or computers.
     
-    FORENSIC DATA CONTEXT:
-    - Total Rows: {summary.get('total_rows')}
-    - Columns and Numerical Stats: {json.dumps(summary.get('numeric'))}
-    - Discovered Relationships: {json.dumps(correlations.get('top_discoveries'))}
+    CURRENT CONTEXT (What the user sees RIGHT NOW):
+    {context_str}
     
-    INSTRUCTIONS:
-    - Explain patterns like a professional data scientist, but keep it accessible for students.
-    - Be precise about averages, standard deviations, and correlations found in the context.
-    - If the user asks for a 'plot', 'chart', or 'graph', suggest the best columns for X and Y axes.
-    - IMPORTANT: If you suggest a visualization, end your message with this exact JSON block:
-      [PLOT_CONFIG: {{"chartType": "bar|scatter|line|pie", "xColumn": "col1", "yColumn": "col2"}}]
+    GLOBAL DATASET STATS:
+    - Rows: {dataset.row_count}
+    - Columns: {dataset.column_count}
+    - Numeric Highlights: {json.dumps(summary.get('numeric'))}
+    
+    STRICT RULES:
+    1. ROLE: Explain ONLY what the system found. Do NOT invent new analysis.
+    2. SCOPE: Focus your answer on the '{page_context.get('page') if page_context else 'General'}' context.
+    3. TONE: Beginner-friendly. No jargon. Use analogies.
+    4. SAFETY: If the user asks for a prediction, say "I cannot predict the future, but I can explain the past data."
+    5. VISUALS: If a chart would help, suggest one using [PLOT_CONFIG].
+    
+    FORBIDDEN WORDS:
+    - "I assume"
+    - "Likely"
+    - "Maybe"
+    - "Train a model"
+    
+    PLOT FORMAT (Only use if needed):
+    [PLOT_CONFIG: {{"chartType": "bar|scatter|line|pie", "xColumn": "col1", "yColumn": "col2"}}]
     """
 
     try:
