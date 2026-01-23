@@ -40,11 +40,13 @@ origins = [
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:3000",
+    "https://*.vercel.app", 
+    "*", # Temporary: Allow all for easier first deployment diagnosis
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=origins, # This uses the list above
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

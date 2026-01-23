@@ -8,7 +8,7 @@ import type {
   PreviewData,
 } from "../types";
 
-const API_URL = "http://localhost:8000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
 const api = axios.create({
   baseURL: API_URL,
@@ -125,7 +125,9 @@ import type { ResearchReport } from "../types";
 /**
  * Retrieves automated findings for the AI Insights dashboard.
  */
-export const getInsights = async (datasetId: number): Promise<ResearchReport> => {
+export const getInsights = async (
+  datasetId: number
+): Promise<ResearchReport> => {
   const response = await api.get<ResearchReport>(`insights/${datasetId}`);
   return response.data;
 };
@@ -204,7 +206,11 @@ api.interceptors.request.use((config) => {
 
 // --- Export & Download Center ---
 
-export const getDownloadUrl = (datasetId: number, type: "data" | "zip", version?: "original" | "prepared"): string => {
+export const getDownloadUrl = (
+  datasetId: number,
+  type: "data" | "zip",
+  version?: "original" | "prepared"
+): string => {
   const baseUrl = `${API_URL}/export/${datasetId}`;
   if (type === "zip") return `${baseUrl}/zip`;
   return `${baseUrl}/data?version=${version || "prepared"}`;
