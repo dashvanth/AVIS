@@ -2,16 +2,16 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-    Database, Activity, Search,
-    BarChart2, Lightbulb, MessageSquare,
+    Search,
+    BarChart2, MessageSquare,
     Eye, Shield, Clock, CheckCircle,
-    FileText, HelpCircle
+    FileText, HelpCircle, Trash2
 } from 'lucide-react';
 import type { Dataset } from '../types';
 
 interface ProjectCardProps {
     dataset: Dataset;
-    onResume: (id: number) => void;
+    onResume?: (id: number) => void;
     onDelete: (id: number) => void;
 }
 
@@ -47,7 +47,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ dataset, onDelete }) => {
     };
 
     const status = getStatusConfig(dataset);
-    const StatusIcon = status.icon;
 
     // Action Handlers
     const handleAction = (path: string) => {
@@ -65,7 +64,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ dataset, onDelete }) => {
         >
             {/* Header: Name & Status */}
             <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-3 overflow-hidden">
+                <div className="flex items-center gap-3 overflow-hidden flex-1">
                     <div className="p-2.5 bg-slate-800 rounded-xl border border-white/5 group-hover:border-indigo-500/30 transition-colors shrink-0">
                         <FileText className="w-5 h-5 text-indigo-400" />
                     </div>
@@ -84,6 +83,17 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ dataset, onDelete }) => {
                         </div>
                     </div>
                 </div>
+
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm('Are you sure you want to delete this project?')) onDelete(dataset.id);
+                    }}
+                    className="p-2 hover:bg-red-500/10 rounded-lg group/del transition-colors"
+                    title="Delete Project"
+                >
+                    <Trash2 className="w-4 h-4 text-slate-600 group-hover/del:text-red-400" />
+                </button>
             </div>
 
             {/* Metadata Grid */}
@@ -108,7 +118,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ dataset, onDelete }) => {
             </div>
 
             {/* Action Toolbar */}
-            <div className="mt-auto pt-4 border-t border-white/5 grid grid-cols-5 gap-1">
+            <div className="mt-auto pt-4 border-t border-white/5 grid grid-cols-4 gap-1">
                 <ActionButton
                     icon={Eye}
                     label="View Data"
@@ -128,14 +138,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ dataset, onDelete }) => {
                     color="text-purple-400 hover:text-purple-300"
                 />
                 <ActionButton
-                    icon={Lightbulb}
-                    label="Insights"
-                    onClick={() => handleAction('/insights')}
-                    color="text-amber-400 hover:text-amber-300"
-                />
-                <ActionButton
                     icon={MessageSquare}
-                    label="Chat"
+                    label="Ask AI"
                     onClick={() => handleAction('/chat')}
                     color="text-emerald-400 hover:text-emerald-300"
                 />

@@ -34,7 +34,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
   const validateFile = (file: File): string | null => {
     if (file.size === 0) return "File is empty";
-    if (file.size > 50 * 1024 * 1024) return "File size is too large (Max 50MB)";
+    if (file.size > 100 * 1024 * 1024) return "File size is too large (Max 100MB)";
     return null;
   };
 
@@ -133,8 +133,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
           >
             <UploadCloud
               className={`w-10 h-10 ${isDragging
-                  ? "text-indigo-400"
-                  : "text-slate-400 group-hover:text-indigo-400"
+                ? "text-indigo-400"
+                : "text-slate-400 group-hover:text-indigo-400"
                 }`}
             />
           </div>
@@ -147,7 +147,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
           </div>
 
           <div className="text-xs text-slate-500 font-medium pt-4 border-t border-white/5 w-full max-w-[200px]">
-            Up to 50 MB • Only one file
+            Up to 100 MB • Only one file
           </div>
         </div>
 

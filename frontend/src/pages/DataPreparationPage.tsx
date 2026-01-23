@@ -468,7 +468,10 @@ const DataPreparationPage: React.FC = () => {
                                 </div>
                                 <div className="text-center border-l border-white/5 pl-4 md:pl-0">
                                     <div className="text-[9px] uppercase tracking-widest text-emerald-400 mb-1">Rows After</div>
-                                    <div className="text-xl font-mono text-emerald-400">{preview.row_count}</div>
+                                    <div className="text-xl font-mono text-emerald-400">
+                                        {preview.row_count}
+                                        <span className="block text-[8px] opacity-60 font-sans tracking-normal mt-1">(Data Preserved)</span>
+                                    </div>
                                 </div>
                                 <div className="text-center border-l border-white/5 pl-4 md:pl-0">
                                     <div className="text-[9px] uppercase tracking-widest text-indigo-400 mb-1">Columns Fixed</div>
@@ -510,7 +513,7 @@ const DataPreparationPage: React.FC = () => {
                                                 fill_missing: autoFill,
                                                 convert_types: autoType,
                                                 remove_duplicates: false
-                                            }).then((result) => navigate(`/dashboard/${result.new_dataset_id}/viz`));
+                                            }).then((result) => navigate(`/dashboard/${result.new_dataset_id}/export`));
                                         }
                                     }}
                                     className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold uppercase tracking-widest text-xs shadow-[0_0_30px_rgba(79,70,229,0.4)] transition-all hover:scale-105"

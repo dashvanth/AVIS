@@ -612,16 +612,10 @@ const EDADashboard: React.FC = () => {
               <FileText className="w-4 h-4" /> Download Report
             </button>
             <button
-              onClick={() => navigate(`/dashboard/${id}/visualization`)}
-              className="flex-1 py-5 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(99,102,241,0.3)] transition-all hover:scale-[1.02] hover:-translate-y-1"
+              onClick={() => navigate(`/dashboard/${id}/prepare`)}
+              className="flex-1 py-5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(16,185,129,0.3)] transition-all hover:scale-[1.02] hover:-translate-y-1"
             >
-              <BarChart2 className="w-5 h-5" /> Create Charts
-            </button>
-            <button
-              onClick={() => navigate(`/dashboard/${id}/chat`)}
-              className="flex-1 py-5 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(168,85,247,0.3)] transition-all hover:scale-[1.02] hover:-translate-y-1"
-            >
-              <MessageSquare className="w-5 h-5" /> Ask AI
+              <ShieldAlert className="w-5 h-5" /> Safely Prepare Data
             </button>
           </div>
 
