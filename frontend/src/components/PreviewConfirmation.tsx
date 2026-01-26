@@ -22,7 +22,7 @@ const PreviewConfirmation: React.FC<PreviewConfirmationProps> = ({
     column_count,
     quality_score,
     columns,
-    preview_data,
+    full_data, // Renamed from preview_data to match type
     dtypes,
     processing_log, // This is the new field from the backend
   } = preview;
@@ -76,23 +76,21 @@ const PreviewConfirmation: React.FC<PreviewConfirmationProps> = ({
             Quality Score
           </p>
           <div
-            className={`flex items-center gap-2 font-bold ${
-              quality_score.rating === "Good"
+            className={`flex items-center gap-2 font-bold ${quality_score.rating === "Optimal"
                 ? "text-green-400"
-                : quality_score.rating === "Fair"
-                ? "text-yellow-400"
-                : "text-red-400"
-            }`}
+                : quality_score.rating === "Stable"
+                  ? "text-yellow-400"
+                  : "text-red-400"
+              }`}
           >
             <span>{quality_score.score}/100</span>
             <span
-              className={`text-xs px-2 py-0.5 rounded-full border ${
-                quality_score.rating === "Good"
+              className={`text-xs px-2 py-0.5 rounded-full border ${quality_score.rating === "Optimal"
                   ? "border-green-400/30 bg-green-400/10"
-                  : quality_score.rating === "Fair"
-                  ? "border-yellow-400/30 bg-yellow-400/10"
-                  : "border-red-400/30 bg-red-400/10"
-              }`}
+                  : quality_score.rating === "Stable"
+                    ? "border-yellow-400/30 bg-yellow-400/10"
+                    : "border-red-400/30 bg-red-400/10"
+                }`}
             >
               {quality_score.rating}
             </span>
@@ -157,7 +155,7 @@ const PreviewConfirmation: React.FC<PreviewConfirmationProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-avis-border">
-              {preview_data.map((row, i) => (
+              {full_data.slice(0, 5).map((row, i: number) => (
                 <tr
                   key={i}
                   className="hover:bg-avis-secondary/50 transition-colors"

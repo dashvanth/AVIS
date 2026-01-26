@@ -5,8 +5,12 @@
  */
 export interface ProcessingStep {
   action: string;
-  count: number;
+  count?: number;
   reason: string;
+  before?: string; // For type correction transparency
+  after?: string;  // For type correction transparency
+  detected_as?: string; // For data type detection transparency
+  stored_as?: string;   // For data type detection transparency
 }
 
 // GLASS BOX TYPES (Phase 8)
