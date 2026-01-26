@@ -8,6 +8,7 @@ import {
   Layout,
   TrendingUp,
   Clock,
+  Database,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Dataset } from "../types";
@@ -47,28 +48,25 @@ const DatasetList: React.FC<DatasetListProps> = ({
             onClick={() => onSelect(dataset.id)}
             layout
             className={`group cursor-pointer bg-avis-primary rounded-2xl shadow-lg border p-6 flex flex-col hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] transition-all duration-300 relative overflow-hidden
-                            ${
-                              isSelected
-                                ? "border-avis-accent-indigo ring-1 ring-avis-accent-indigo/30"
-                                : "border-avis-border hover:border-avis-accent-indigo/50"
-                            }`}
+                            ${isSelected
+                ? "border-avis-accent-indigo ring-1 ring-avis-accent-indigo/30"
+                : "border-avis-border hover:border-avis-accent-indigo/50"
+              }`}
           >
             {/* Glow Effect */}
             <div
-              className={`absolute top-0 right-0 w-32 h-32 bg-avis-accent-indigo opacity-0 group-hover:opacity-10 blur-[60px] transition-opacity ${
-                isSelected ? "opacity-20" : ""
-              }`}
+              className={`absolute top-0 right-0 w-32 h-32 bg-avis-accent-indigo opacity-0 group-hover:opacity-10 blur-[60px] transition-opacity ${isSelected ? "opacity-20" : ""
+                }`}
             ></div>
 
             {/* Card Header */}
             <div className="flex items-start justify-between mb-6 relative z-10">
               <div className="flex items-center space-x-3 min-w-0">
                 <div
-                  className={`p-3 rounded-xl shadow-inner transition-colors ${
-                    isSelected
+                  className={`p-3 rounded-xl shadow-inner transition-colors ${isSelected
                       ? "bg-avis-accent-indigo"
                       : "bg-gradient-to-br from-avis-accent-indigo to-purple-600"
-                  }`}
+                    }`}
                 >
                   <FileText className="w-5 h-5 text-white" />
                 </div>
@@ -162,11 +160,10 @@ const DatasetList: React.FC<DatasetListProps> = ({
             {/* Status Bar */}
             <div className="absolute bottom-0 left-0 w-full h-1 bg-avis-border/30">
               <div
-                className={`h-full transition-all duration-500 ${
-                  dataset.analyzed
+                className={`h-full transition-all duration-500 ${dataset.analyzed
                     ? "bg-avis-accent-success w-full"
                     : "bg-avis-accent-amber w-1/3"
-                }`}
+                  }`}
               />
             </div>
           </motion.div>

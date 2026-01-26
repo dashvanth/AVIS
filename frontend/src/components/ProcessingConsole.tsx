@@ -71,7 +71,7 @@ export const ProcessingConsole: React.FC<ProcessingConsoleProps> = ({
 
       <div className="space-y-6 relative z-10">
         {visibleLogs.map((log, i) => {
-          const hasIssues = log.count > 0;
+          const hasIssues = (log.count || 0) > 0;
           return (
             <div
               key={i}
@@ -85,9 +85,8 @@ export const ProcessingConsole: React.FC<ProcessingConsoleProps> = ({
                 )}
                 <span className="font-bold text-white">[{log.action}]</span>
                 <span
-                  className={`${
-                    hasIssues ? "text-red-500" : "text-avis-accent-success"
-                  } font-black text-[10px] uppercase`}
+                  className={`${hasIssues ? "text-red-500" : "text-avis-accent-success"
+                    } font-black text-[10px] uppercase`}
                 >
                   {hasIssues ? `Impacted: ${log.count} Items` : "Verified"}
                 </span>
