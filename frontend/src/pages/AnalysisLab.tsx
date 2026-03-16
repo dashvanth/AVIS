@@ -17,7 +17,8 @@ import {
   Sparkles,
   Info,
   X,
-  FileText as FileTextIcon
+  FileText as FileTextIcon,
+  MessageSquarePlus
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -35,7 +36,6 @@ import { DataIssueCard } from "../components/DataIssueCard";
 import { RepairSuggestionCard } from "../components/RepairSuggestionCard";
 import { HealthScoreCard } from "../components/HealthScoreCard";
 import { RepairSimulationPanel, type SimulationData } from "../components/RepairSimulationPanel";
-import { HealthTimeline } from "../components/HealthTimeline";
 import { RepairTracePanel, type RepairTraceData } from "../components/RepairTracePanel";
 import { StrategyComparisonPanel, type StrategyComparisonData } from "../components/StrategyComparisonPanel";
 import { DatasetQualityRadar, type QualityMetrics } from "../components/DatasetQualityRadar";
@@ -59,8 +59,6 @@ const AnalysisLab: React.FC = () => {
   const [simOpen, setSimOpen] = useState(false);
   const [simData, setSimData] = useState<SimulationData | null>(null);
   const [traceData, setTraceData] = useState<RepairTraceData | null>(null);
-  const [timelineData, setTimelineData] = useState<any[]>([]);
-
   const [compareOpen, setCompareOpen] = useState(false);
   const [compareData, setCompareData] = useState<StrategyComparisonData | null>(null);
 
@@ -227,18 +225,7 @@ const AnalysisLab: React.FC = () => {
         setRepairData(repairInfo);
         setQualityData(qualityInfo);
 
-        // Fetch Health Timeline based on recommendations gracefully
-        if (repairInfo.recommendations && repairInfo.recommendations.length > 0) {
-           try {
-             const steps = repairInfo.recommendations.map((r: any) => ({ column: r.column, strategy: r.recommended_strategy }));
-             const tData = await api.getRepairTimeline(Number(id), steps);
-             setTimelineData(tData.timeline || []);
-           } catch (timelineErr) {
-             console.warn("Could not fetch auxiliary health timeline:", timelineErr);
-             // Fail gracefully to prevent full page crash
-             setTimelineData([]);
-           }
-        }
+        setQualityData(qualityInfo);
       } catch (err: any) {
         console.error("AnalysisLab Fetch Error:", err);
         setError("Unable to initialize Analysis Lab workspace.");
@@ -401,31 +388,26 @@ const AnalysisLab: React.FC = () => {
              {qualityData && <DatasetQualityRadar metrics={qualityData} onMetricClick={handleMetricClick} />}
           </div>
           
-          {timelineData.length > 0 && (
-             <div className="mt-8">
-               <HealthTimeline timeline={timelineData} />
-               <div className="mt-8">
-                 <h2 className="text-xl font-bold text-white mb-6 border-b border-white/10 pb-2">Diagnostic Trace Logs</h2>
-                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                     <div className="bg-slate-900 border border-indigo-500/20 rounded-2xl p-6 w-full flex flex-col mt-6 shadow-xl relative min-h-[400px]">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl rounded-full"></div>
-                        <div className="flex items-center gap-3 border-b border-indigo-500/20 pb-3 mb-4 relative z-10">
-                           <span className="text-xl font-bold text-white tracking-wide">Algorithmic Repair Trajectory</span>
-                        </div>
-                        {traceData ? (
-                          <RepairTracePanel trace={traceData} />
-                        ) : (
-                          <div className="flex-1 flex flex-col items-center justify-center text-center p-8 mt-12 bg-black/20 rounded-xl border border-white/5">
-                              <Stethoscope className="w-12 h-12 text-indigo-400 mb-4 opacity-60" />
-                              <p className="text-slate-400">Select a recommended strategy below and click "Preview Fix" to generate a detailed transparent algorithmic trace.</p>
-                          </div>
-                        )}
-                     </div>
-                     <VersionHistoryPanel datasetId={Number(id)} currentFilename={preview?.filename || "dataset.csv"} />
+        <div className="mt-8">
+          <h2 className="text-xl font-bold text-white mb-6 border-b border-white/10 pb-2">Diagnostic Trace Logs</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              <div className="bg-slate-900 border border-indigo-500/20 rounded-2xl p-6 w-full flex flex-col mt-6 shadow-xl relative min-h-[400px]">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-3xl rounded-full"></div>
+                 <div className="flex items-center gap-3 border-b border-indigo-500/20 pb-3 mb-4 relative z-10">
+                    <span className="text-xl font-bold text-white tracking-wide">Algorithmic Repair Trajectory</span>
                  </div>
-               </div>
-             </div>
-          )}
+                 {traceData ? (
+                   <RepairTracePanel trace={traceData} />
+                 ) : (
+                   <div className="flex-1 flex flex-col items-center justify-center text-center p-8 mt-12 bg-black/20 rounded-xl border border-white/5">
+                       <Stethoscope className="w-12 h-12 text-indigo-400 mb-4 opacity-60" />
+                       <p className="text-slate-400">Select a recommended strategy below and click "Preview Fix" to generate a detailed transparent algorithmic trace.</p>
+                   </div>
+                 )}
+              </div>
+              <VersionHistoryPanel datasetId={Number(id)} currentFilename={preview?.filename || "dataset.csv"} />
+          </div>
+        </div>
         </section>
 
         {/* SECTION 2: DATA QUALITY DIAGNOSTICS */}
@@ -445,6 +427,8 @@ const AnalysisLab: React.FC = () => {
                     issueType={`${issue.issue} (${issue.count} affected)`} 
                     severity={issue.severity} 
                     description={issue.details || "Detected structure vulnerability capable of distorting algorithms."}
+                    count={issue.count}
+                    totalRows={preview.row_count}
                   />
                 ))}
               </div>

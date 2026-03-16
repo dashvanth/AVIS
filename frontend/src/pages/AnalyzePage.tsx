@@ -20,6 +20,7 @@ import { DataIssueCard } from "../components/DataIssueCard";
 import DataDrilldownModal from "../components/DataDrilldownModal";
 import HealthDetailModal from "../components/HealthDetailModal";
 import { QualityMetricDataModal } from "../components/QualityMetricDataModal";
+import { QualityIssueDataModal } from "../components/QualityIssueDataModal";
 
 const AnalyzePage: React.FC = () => {
   const { 
@@ -41,6 +42,7 @@ const AnalyzePage: React.FC = () => {
   } | null>(null);
   const [healthModalOpen, setHealthModalOpen] = useState(false);
   const [activeQualityMetric, setActiveQualityMetric] = useState<string | null>(null);
+  const [activeIssue, setActiveIssue] = useState<any | null>(null);
 
   const generateNarrative = () => {
     if (!preview || !summary) return "";
@@ -58,6 +60,39 @@ const AnalyzePage: React.FC = () => {
 
   const handleMetricClick = (metricName: string) => {
     setActiveQualityMetric(metricName);
+  };
+
+  const handleIssueClick = (issue: any) => {
+    if (!preview?.full_data) return;
+
+    let filteredRows: any[] = [];
+    const issueTypeStr = (issue.issue || "").toLowerCase();
+
+    if (issueTypeStr.includes("missing")) {
+      filteredRows = preview.full_data.filter((row: any) => 
+        row[issue.column] === null || row[issue.column] === undefined || row[issue.column] === ""
+      );
+    } else if (issueTypeStr.includes("duplicate")) {
+      // In this system, if column is "Dataset", it's row duplicates
+      if (issue.column === "Dataset" || !issue.column) {
+         // Fallback if backend doesn't provide specific duplicate rows: show top data with duplicates
+         filteredRows = preview.full_data.slice(0, 20); 
+      } else {
+         // Specific column duplicates if tracked
+         filteredRows = preview.full_data.filter((row: any) => row[issue.column] !== null);
+      }
+    } else {
+      // Outliers or other structural issues
+      filteredRows = preview.full_data.filter((row: any) => row[issue.column] !== null).slice(0, 15);
+    }
+
+    setActiveIssue({
+      column: issue.column,
+      type: issue.issue,
+      count: issue.count,
+      percentage: ((issue.count / preview.row_count) * 100).toFixed(1),
+      rows: filteredRows
+    });
   };
 
   if (loading) return null;
@@ -182,6 +217,9 @@ const AnalyzePage: React.FC = () => {
                     issueType={`${issue.issue} (${issue.count} affected)`} 
                     severity={issue.severity} 
                     description={issue.details || "Detected structure vulnerability capable of distorting algorithms."}
+                    count={issue.count}
+                    totalRows={preview.row_count}
+                    onClick={() => handleIssueClick(issue)}
                   />
                 ))}
               </div>
@@ -224,6 +262,13 @@ const AnalyzePage: React.FC = () => {
         score={(activeQualityMetric && qualityData) ? (qualityData as any)[activeQualityMetric.toLowerCase().replace(" ", "_")] : 0}
         preview={preview}
         repairData={repairData}
+      />
+
+      {/* QUALITY ISSUE FORENSIC MODAL */}
+      <QualityIssueDataModal
+        open={!!activeIssue}
+        onClose={() => setActiveIssue(null)}
+        issue={activeIssue}
       />
 
       {/* GENERAL MODAL SYSTEM (Legacy/Fallback) */}
