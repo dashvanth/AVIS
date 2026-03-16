@@ -10,25 +10,25 @@ Built with a **Modern Full-Stack Architecture**, A.V.I.S. bridges the gap betwee
 
 ## 🚀 Key Features
 
-### 🔍 1. Forensic Transparency Engine
+### ⚖️ 1. Deterministic Analytical Engine (NEW)
+*   **"Professor-Level" Explainability**: Every score (Health, Quality) is mathematically proven with raw data anchors.
+*   **Audit Detail Modals**: Interactive breakdown of calculations (`Score = 1 - Penalty`) with column-level impact analysis.
+*   **Record-Level Trace**: Inspect the actual raw records (Row IDs, Values) behind every structural anomaly.
+
+### 🔍 2. Forensic Transparency Engine
 *   **"Glass Box" Processing**: Unlike black-box tools, A.V.I.S. shows you exactly what happens to your data.
 *   **Real-time Audit Logs**: Track every null value filled, row removed, and type inferred with a live console log.
-*   **Before vs. After**: Visual diffs of your dataset's health score.
+*   **Before vs. After**: Visual diffs of your dataset's health evolution.
 
-### 📊 2. Automated EDA & Visualization
-*   **Instant Stats**: Skewness, Kurtosis, and Distribution analysis in milliseconds.
-*   **Draggable Dashboards**: A fully customizable layout engine to arrange your charts.
-*   **Smart Charts**: Automatically selects the best visualization (Heatmaps, Scatter, Bar) based on data types.
+### 📊 3. Automated EDA & Intelligence Laboratory
+*   **Quality Profiling Matrix**: A multidimensional radar chart for Completeness, Consistency, Uniqueness, and Validity.
+*   **Intelligence Lab**: Instant statistical deep-dives, correlation heatmaps, and pattern detection.
+*   **Draggable Dashboards**: Arranging charts in a fully customizable layout engine.
 
-### 🧠 3. AI-Powered Insights (RAG)
-*   **Retrieval Augmented Generation**: Chat with your specific dataset.
-*   **Context-Aware**: The AI knows your column names, value ranges, and hidden correlations.
-*   **Report Generation**: One-click export of executive summaries in Markdown/PDF.
-
-### ⚡ 4. Performant Architecture
-*   **Split Deployment**: Frontend on **Vercel** (Edge), Backend on **Render** (Compute).
-*   **Optimized Data Handling**: Handles large datasets with Pandas & NumPy optimization.
-*   **Responsive Design**: A mobile-first, glassmorphic UI built with Tailwind CSS.
+### 🧠 4. AI-Powered Insights (Hybrid RAG)
+*   **Deterministic Fallbacks**: AI is used for narrative, while core diagnostics are 100% data-anchored for academic rigor.
+*   **Context-Aware Chat**: Advanced RAG that understands column distributions and hidden correlations.
+*   **Report Generation**: Pro-grade executive summaries in Markdown/PDF.
 
 ---
 
