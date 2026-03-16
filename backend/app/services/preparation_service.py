@@ -11,46 +11,63 @@ from app.services.eda_service import get_dataframe
 def get_preparation_suggestions(dataset_id: int, session: Session):
     """
     Scans the dataset for common issues and provides suggestions.
-    Read-Only operation.
+    Optimized: Reads from ingestion_insights instead of loading Pandas dataframe.
     """
-    df = get_dataframe(dataset_id, session)
-    
-    # 1. Missing Values
+    dataset = session.get(Dataset, dataset_id)
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+        
     missing_values = []
     fill_suggestions = {}
-    
-    for col in df.columns:
-        missing_count = int(df[col].isnull().sum())
-        if missing_count > 0:
-            missing_values.append({
-                "column": col, 
-                "count": missing_count
-            })
-            
-            # Smart suggestions based on type
-            if pd.api.types.is_numeric_dtype(df[col]):
-                fill_suggestions[col] = ["Fill with Mean (Average)", "Fill with Median (Center)", "Remove Rows", "Keep Empty"]
-            else:
-                fill_suggestions[col] = ["Fill with 'Unknown'", "Remove Rows", "Keep Empty"]
-
-    # 2. Wrong Data Types (Heuristic)
     wrong_types = []
     type_suggestions = {}
+    duplicate_count = 0
     
-    for col in df.columns:
-        if df[col].dtype == 'object':
-            # Check if it looks numeric
-            numeric_test = pd.to_numeric(df[col], errors='coerce')
-            if numeric_test.notnull().mean() > 0.8: # >80% parseable as numbers
-                wrong_types.append({
-                    "column": col,
-                    "detected": "Text (Object)",
-                    "expected": "Number"
-                })
-                type_suggestions[col] = ["Convert to Number", "Keep as Text"]
-
-    # 3. Duplicates
-    duplicate_count = int(df.duplicated().sum())
+    if dataset.ingestion_insights:
+        try:
+            insights = json.loads(dataset.ingestion_insights)
+            data_issues = insights.get("data_issues", [])
+            col_types = {c["column_name"]: c["representation"] for c in insights.get("column_types", [])}
+            breakdown = insights.get("score_breakdown", [])
+            
+            # 1. Missing Values & 2. Wrong Data Types
+            for issue in data_issues:
+                col = issue.get("column_name")
+                if issue.get("issue_type") == "Missing Value":
+                    # Try to extract exact count from explanation
+                    import re
+                    match = re.search(r'has (\d+) empty', issue.get("explanation", ""))
+                    m_count = int(match.group(1)) if match else 1
+                    
+                    missing_values.append({
+                        "column": col,
+                        "count": m_count
+                    })
+                    
+                    rep = col_types.get(col, "Text")
+                    if rep == "Number":
+                        fill_suggestions[col] = ["Fill with Mean (Average)", "Fill with Median (Center)", "Remove Rows", "Keep Empty"]
+                    else:
+                        fill_suggestions[col] = ["Fill with 'Unknown'", "Remove Rows", "Keep Empty"]
+                        
+                elif issue.get("issue_type") == "Wrong Data Type":
+                    wrong_types.append({
+                        "column": col,
+                        "detected": "Text (Object)",
+                        "expected": "Number"
+                    })
+                    type_suggestions[col] = ["Convert to Number", "Keep as Text"]
+            
+            # 3. Duplicates
+            for b in breakdown:
+                if b.get("reason") == "Duplicate Rows":
+                    import re
+                    match = re.search(r'Found (\d+) identical', b.get("explanation", ""))
+                    if match:
+                        duplicate_count = int(match.group(1))
+                        
+        except Exception as e:
+            print(f"Error parsing metadata: {e}")
 
     return {
         "missing_values": missing_values,

@@ -9,22 +9,7 @@ const ChatDashboard: React.FC = () => {
     if (!id) return null;
 
     return (
-        <div className="max-w-[1200px] mx-auto px-6 py-8 space-y-6 bg-avis-primary min-h-screen">
-            {/* Header */}
-            <div className="flex items-end justify-between border-b border-avis-border/40 pb-6">
-                <div className="space-y-2">
-                    <div className="flex items-center gap-3 text-avis-accent-indigo text-[10px] font-black uppercase tracking-[0.4em]">
-                        <Zap className="w-4 h-4" /> Intelligence Node
-                    </div>
-                    <h2 className="text-4xl font-black text-white tracking-tighter italic">
-                        Contextual Chat
-                    </h2>
-                    <p className="text-avis-text-secondary text-sm font-medium max-w-xl leading-relaxed">
-                        Query your dataset using natural language. The Assistant can explain patterns, identify anomalies, and generate visualizations on demand.
-                    </p>
-                </div>
-            </div>
-
+        <div className="space-y-6 py-8">
             {/* Chat Component */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 {/* Main Chat Area */}

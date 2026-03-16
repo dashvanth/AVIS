@@ -2,18 +2,18 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import jwt
-from passlib.context import CryptContext
+ 
 
 SECRET_KEY = "SECRET_AVIS_KEY" 
 ALGORITHM = "HS256"
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import hashlib
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    return get_password_hash(plain_password) == hashed_password
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    return hashlib.sha256(password.encode()).hexdigest()
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()

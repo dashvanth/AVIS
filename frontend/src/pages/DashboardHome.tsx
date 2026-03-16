@@ -2,9 +2,11 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import ProjectCard from "../components/ProjectCard";
 import DashboardHint from "../components/DashboardHint";
+import FileUpload from "../components/FileUpload";
 import { getDatasets, deleteDataset } from "../services/api";
 import type { Dataset } from "../types";
 import { Plus, Filter } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 type FilterType = 'all' | 'verified' | 'processing';
 
@@ -12,6 +14,11 @@ const DashboardHome: React.FC = () => {
   const [datasets, setDatasets] = useState<Dataset[]>([]);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  const handleUploadSuccess = async (dataset: Dataset) => {
+    navigate(`/dashboard/${dataset.id}/analyze`);
+  };
 
   const fetchDatasets = async () => {
     try {
@@ -47,12 +54,17 @@ const DashboardHome: React.FC = () => {
   });
 
   return (
-    <div className="max-w-[1600px] mx-auto px-6 py-6">
+    <div className="px-6 py-6">
 
       {/* 1. BEGINNER GUIDANCE */}
       <DashboardHint />
 
-      {/* 2. DASHBOARD HEADER & CONTROLS */}
+      {/* 2. UPLOAD SECTION */}
+      <div className="mb-12">
+        <FileUpload onUploadSuccess={handleUploadSuccess} />
+      </div>
+
+      {/* 3. DASHBOARD HEADER & CONTROLS */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h2 className="text-2xl font-bold text-white tracking-tight">Data Projects</h2>
@@ -103,7 +115,7 @@ const DashboardHome: React.FC = () => {
           </h3>
           <p className="text-slate-400 max-w-md mx-auto text-sm">
             {activeFilter === 'all'
-              ? "Use the 'Upload Dataset' button in the top navigation to create your first project."
+              ? "Use the upload area above to create your first project."
               : "Try switching filters to see other projects."}
           </p>
         </motion.div>

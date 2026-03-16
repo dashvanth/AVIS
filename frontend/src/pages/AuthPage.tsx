@@ -17,22 +17,15 @@ import { login, signup } from "../services/api";
 
 const AuthPage: React.FC = () => {
   const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
+  const [isLogin, setIsLogin] = useState(true);
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
   });
-
-  const toggleMode = () => {
-    setIsLogin(!isLogin);
-    setError(null);
-    setFormData({ ...formData, password: "" });
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -47,15 +40,9 @@ const AuthPage: React.FC = () => {
     try {
       let response;
       if (isLogin) {
-        // Standard user authentication
         response = await login(formData.email, formData.password);
       } else {
-        // User registration: Backend now returns token immediately for redirect
-        response = await signup(
-          formData.email,
-          formData.password,
-          formData.name
-        );
+        response = await signup(formData.email, formData.password, formData.name);
       }
 
       // Store persistent session data
@@ -83,115 +70,67 @@ const AuthPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-avis-primary flex items-stretch overflow-hidden">
-      {/* Left Side: Professional Branding & Insight */}
-      <div className="hidden lg:flex w-1/2 relative bg-avis-primary flex-col justify-between p-12 border-r border-avis-border/30">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-avis-accent-indigo opacity-10 blur-[150px] rounded-full -mt-20 -mr-20"></div>
-
-        <div className="relative z-10">
-          <div
-            className="flex items-center space-x-3 mb-8 cursor-pointer"
-            onClick={() => navigate("/")}
-          >
-            <div className="p-2 rounded-xl bg-gradient-to-br from-avis-accent-indigo to-avis-accent-cyan">
-              <Zap className="h-6 w-6 text-white" />
-            </div>
-            <h1 className="text-2xl font-black tracking-tighter text-white uppercase italic">
-              A.V.I.I.S.
-            </h1>
-          </div>
-        </div>
-
-        <div className="relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-avis-accent-cyan/10 border border-avis-accent-cyan/20 text-avis-accent-cyan text-[10px] font-bold uppercase tracking-widest mb-6">
-            <ShieldCheck className="w-3 h-3" /> Encrypted Access
-          </div>
-          <h2 className="text-4xl font-black text-white leading-tight mb-6 tracking-tighter">
-            Analytical Intelligence <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-avis-accent-indigo to-avis-accent-cyan">
-              starts here
-            </span>
-            .
-          </h2>
-          <p className="text-lg text-avis-text-secondary max-w-md opacity-80 leading-relaxed">
-            Professional-grade data analysis with radical transparency. Sign in
-            to manage your datasets and insights.
-          </p>
-        </div>
-
-        <div className="relative z-10 text-[10px] font-mono text-avis-text-secondary/40 uppercase tracking-[0.3em]">
-          &copy; {new Date().getFullYear()} AVIS PROJECT // SECURE SESSION HUB
-        </div>
-      </div>
-
-      {/* Right Side: Professional Auth Interface */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative">
-        <div className="w-full max-w-md space-y-8 relative z-10">
+    <div className="flex items-center justify-center p-6 sm:p-12 min-h-[calc(100vh-160px)]">
+      <div className="w-full max-w-md space-y-8 relative z-10">
           <div className="text-center lg:text-left">
             <h2 className="text-3xl font-black tracking-tighter text-white">
               {isLogin ? "Welcome Back" : "Create Account"}
             </h2>
             <p className="mt-2 text-sm text-avis-text-secondary opacity-70">
               {isLogin
-                ? "Sign in to access your analysis dashboard."
-                : "Register to begin your data-driven journey."}
+                ? "Enter your credentials to access your workspace."
+                : "Sign up to start analyzing your data securely."}
             </p>
           </div>
 
-          <div className="bg-avis-secondary/30 backdrop-blur-3xl border border-avis-border/50 rounded-[2rem] p-8 shadow-2xl">
-            {/* Professional Mode Toggles */}
-            <div className="flex mb-8 bg-avis-primary/50 rounded-2xl p-1.5 border border-avis-border/30">
-              <button
-                onClick={() => !isLogin && toggleMode()}
-                className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all ${
-                  isLogin
-                    ? "bg-avis-accent-indigo text-white shadow-lg"
-                    : "text-avis-text-secondary hover:text-white"
-                }`}
-              >
-                Sign In
-              </button>
-              <button
-                onClick={() => isLogin && toggleMode()}
-                className={`flex-1 py-2.5 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all ${
-                  !isLogin
-                    ? "bg-avis-accent-indigo text-white shadow-lg"
-                    : "text-avis-text-secondary hover:text-white"
-                }`}
-              >
-                Sign Up
-              </button>
-            </div>
+          <div className="flex p-1 bg-avis-primary/50 backdrop-blur-md rounded-2xl border border-avis-border/50">
+            <button
+              type="button"
+              onClick={() => { setIsLogin(true); setError(null); }}
+              className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
+                isLogin
+                  ? "bg-avis-accent-indigo text-white shadow-lg"
+                  : "text-avis-text-secondary hover:text-white"
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => { setIsLogin(false); setError(null); }}
+              className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
+                !isLogin
+                  ? "bg-avis-accent-indigo text-white shadow-lg"
+                  : "text-avis-text-secondary hover:text-white"
+              }`}
+            >
+              Sign Up
+            </button>
+          </div>
 
+          <div className="bg-avis-secondary/30 backdrop-blur-3xl border border-avis-border/50 rounded-[2rem] p-8 shadow-2xl">
             <form onSubmit={handleSubmit} className="space-y-5">
-              <AnimatePresence mode="wait">
-                {!isLogin && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="space-y-1"
-                  >
-                    <label className="text-[10px] font-bold text-avis-text-secondary uppercase tracking-widest ml-1 opacity-60">
-                      Full Name
-                    </label>
-                    <div className="relative group">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <User className="h-4 w-4 text-avis-text-secondary group-focus-within:text-avis-accent-indigo transition-colors" />
-                      </div>
-                      <input
-                        type="text"
-                        name="name"
-                        required
-                        value={formData.name}
-                        onChange={handleChange}
-                        className="block w-full pl-11 pr-4 py-3.5 bg-avis-primary/50 border border-avis-border/50 rounded-2xl text-white placeholder-avis-text-secondary/20 focus:ring-2 focus:ring-avis-accent-indigo/50 outline-none text-sm transition-all"
-                        placeholder="John Doe"
-                      />
+              {!isLogin && (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-avis-text-secondary uppercase tracking-widest ml-1 opacity-60">
+                    Full Name
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <User className="h-4 w-4 text-avis-text-secondary group-focus-within:text-avis-accent-indigo transition-colors" />
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    <input
+                      type="text"
+                      name="name"
+                      required={!isLogin}
+                      value={formData.name}
+                      onChange={handleChange}
+                      className="block w-full pl-11 pr-4 py-3.5 bg-avis-primary/50 border border-avis-border/50 rounded-2xl text-white placeholder-avis-text-secondary/20 focus:ring-2 focus:ring-avis-accent-indigo/50 outline-none text-sm transition-all"
+                      placeholder="John Doe"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-avis-text-secondary uppercase tracking-widest ml-1 opacity-60">
@@ -222,28 +161,16 @@ const AuthPage: React.FC = () => {
                     <Lock className="h-4 w-4 text-avis-text-secondary group-focus-within:text-avis-accent-indigo transition-colors" />
                   </div>
                   <input
-                    type={showPassword ? "text" : "password"}
+                    type="password"
                     name="password"
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className="block w-full pl-11 pr-11 py-3.5 bg-avis-primary/50 border border-avis-border/50 rounded-2xl text-white placeholder-avis-text-secondary/20 focus:ring-2 focus:ring-avis-accent-indigo/50 outline-none text-sm transition-all"
+                    className="block w-full pl-11 pr-4 py-3.5 bg-avis-primary/50 border border-avis-border/50 rounded-2xl text-white placeholder-avis-text-secondary/20 focus:ring-2 focus:ring-avis-accent-indigo/50 outline-none text-sm transition-all"
                     placeholder="••••••••"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-avis-text-secondary hover:text-white transition-colors"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
                 </div>
               </div>
-
               {error && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -266,7 +193,7 @@ const AuthPage: React.FC = () => {
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    {isLogin ? "Sign In" : "Create Account"}{" "}
+                    Continue{" "}
                     <ArrowRight className="h-4 w-4" />
                   </>
                 )}
@@ -275,8 +202,7 @@ const AuthPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
 };
 
 export default AuthPage;

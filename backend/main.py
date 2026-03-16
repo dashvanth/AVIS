@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.database import create_db_and_tables
-from app.api.endpoints import datasets, eda, viz, auth, insights, chat, preparation, downloads
+from app.api.endpoints import datasets, eda, viz, auth, insights, chat, preparation, downloads, repair, repair_analysis, strategy_analysis, quality, version
 from contextlib import asynccontextmanager
 import time
 import logging
@@ -40,13 +40,12 @@ origins = [
     "http://localhost:5173",
     "http://localhost:5174",
     "http://localhost:3000",
-    "https://*.vercel.app", 
-    "*", # Temporary: Allow all for easier first deployment diagnosis
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins, # This uses the list above
+    allow_origins=origins,
+    allow_origin_regex=r"https://.*\.vercel\.app", 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -64,7 +63,7 @@ async def audit_request_middleware(request: Request, call_next):
 # Standardized Error Handling: Catches unhandled logic anomalies
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"SYSTEM ANOMALY DETECTED: {str(exc)}")
+    logger.exception("SYSTEM ANOMALY DETECTED:")
     return JSONResponse(
         status_code=500,
         content={"detail": "Forensic Engine Error: An unexpected logic anomaly occurred."},
@@ -93,6 +92,21 @@ app.include_router(preparation.router, prefix="/api/preparation", tags=["Prepara
 
 # Node 9: Export & Download Center (New)
 app.include_router(downloads.router, prefix="/api/export", tags=["Export Node"])
+
+# Node 10: Intelligent Data Repair Engine
+app.include_router(repair.router, prefix="/api/repair", tags=["Repair Node"])
+
+# Node 11: Repair Analytics & Explanation
+app.include_router(repair_analysis.router, prefix="/api/repair", tags=["Repair Analysis"])
+
+# Node 12: Strategy Comparison
+app.include_router(strategy_analysis.router, prefix="/api/repair", tags=["Strategy Comparison"])
+
+# Node 13: Dimensional Quality Radar Metrics
+app.include_router(quality.router, prefix="/api/quality", tags=["Dataset Quality Metrics"])
+
+# Node 14: Version Tracking History
+app.include_router(version.router, prefix="/api/versions", tags=["Versioning"])
 
 @app.get("/", tags=["Diagnostic"])
 def read_root():

@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useParams } from "react-router-dom";
-import { MessageSquare, X, Send, Zap, BrainCircuit, ChevronDown, Sparkles } from "lucide-react";
+import { MessageSquare, X, Send, Zap, BrainCircuit, ChevronDown, Sparkles, MessageSquarePlus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as api from "../services/api";
+import { useChat } from "../context/ChatContext";
 
 interface Message {
     role: "user" | "assistant";
@@ -14,14 +15,23 @@ const FloatingChat: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const datasetId = Number(id);
     const location = useLocation();
+    
+    const { isOpen, setIsOpen, pendingMessage, clearPendingMessage, currentContext } = useChat();
 
-    const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
         { role: "assistant", content: "Hi! I'm A.V.I.S. I can explain the analysis you see on this page. What would you like to know?" }
     ]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // Initial message on context trigger
+    useEffect(() => {
+        if (pendingMessage) {
+            setInput(pendingMessage);
+            clearPendingMessage();
+        }
+    }, [pendingMessage, clearPendingMessage]);
 
     // Auto-scroll to bottom
     const scrollToBottom = () => {
@@ -32,12 +42,13 @@ const FloatingChat: React.FC = () => {
     // Determine Context based on URL
     const getPageContext = () => {
         const path = location.pathname;
-        if (path.includes("/eda")) return { page: "EDA", focus: "Statistics & Distributions" };
-        if (path.includes("/prepare")) return { page: "Preparation", focus: "Data Cleaning & Quality" };
-        if (path.includes("/viz")) return { page: "Visualization", focus: "Charts & Graphs" };
-        if (path.includes("/understanding")) return { page: "Understanding", focus: "Dataset Metadata" };
-        if (path.includes("/export")) return { page: "Export", focus: "Download Options" };
-        return { page: "Dashboard", focus: "General Overview" };
+        let baseContext = { page: "Global Context", focus: "General AVIS Navigation" };
+        
+        if (path.includes("/analyze")) baseContext = { page: "Intelligence Workspace", focus: "Unified Analysis & Repair" };
+        if (path.includes("/viz")) baseContext = { page: "Visualization", focus: "Charts & Graphs" };
+        if (path.includes("/chat")) baseContext = { page: "Chat Dashboard", focus: "AI Q&A Engine" };
+        
+        return { ...baseContext, ...currentContext };
     };
 
     const handleSend = async () => {
@@ -141,16 +152,24 @@ const FloatingChat: React.FC = () => {
                         <div className="p-4 bg-slate-950/80 border-t border-white/5">
                             {/* QUICK TIPS (Dynamic based on page) */}
                             <div className="flex gap-2 overflow-x-auto pb-3 no-scrollbar mask-fade-right">
-                                {getPageContext().page === "EDA" && (
+                                {getPageContext().page === "Intelligence Workspace" && (
                                     <>
-                                        <button onClick={() => setInput("Summarize these stats")} className="whitespace-nowrap px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-full text-[10px] text-slate-400 border border-white/5 transition-colors">Summarize findings</button>
-                                        <button onClick={() => setInput("Are there outliers?")} className="whitespace-nowrap px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-full text-[10px] text-slate-400 border border-white/5 transition-colors">Check outliers</button>
+                                        <button onClick={() => setInput("Summarize this dataset")} className="whitespace-nowrap px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-full text-[10px] text-indigo-400 border border-indigo-500/20 transition-colors">Summarize findings</button>
+                                        <button onClick={() => setInput("What are the top data issues?")} className="whitespace-nowrap px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-full text-[10px] text-indigo-400 border border-indigo-500/20 transition-colors">Identify issues</button>
+                                        <button onClick={() => setInput(`Explain health score of ${currentContext?.healthScore}`)} className="whitespace-nowrap px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-full text-[10px] text-indigo-400 border border-indigo-500/20 transition-colors">Analyze health</button>
                                     </>
                                 )}
                                 {getPageContext().page === "Visualization" && (
                                     <>
-                                        <button onClick={() => setInput("What does this chart show?")} className="whitespace-nowrap px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-full text-[10px] text-slate-400 border border-white/5 transition-colors">Explain chart</button>
-                                        <button onClick={() => setInput("Suggest another chart")} className="whitespace-nowrap px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-full text-[10px] text-slate-400 border border-white/5 transition-colors">Next steps</button>
+                                        {currentContext?.canExplain && (
+                                            <button onClick={() => setInput(`Explain this ${currentContext.chartType} chart for ${currentContext.xAxis}`)} className="whitespace-nowrap px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-full text-[10px] text-indigo-400 border border-indigo-500/20 transition-colors">Explain chart</button>
+                                        )}
+                                        <button onClick={() => setInput("Suggest another chart")} className="whitespace-nowrap px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-full text-[10px] text-indigo-400 border border-indigo-500/20 transition-colors">Next steps</button>
+                                    </>
+                                )}
+                                {getPageContext().page === "Global Context" && (
+                                    <>
+                                        <button onClick={() => setInput("How do I use this app?")} className="whitespace-nowrap px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-full text-[10px] text-indigo-400 border border-indigo-500/20 transition-colors">Help guide</button>
                                     </>
                                 )}
                             </div>

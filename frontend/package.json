@@ -23,7 +23,7 @@
     "lodash": "^4.17.21",
     "lucide-react": "^0.561.0",
     "papaparse": "^5.5.3",
-    "plotly.js": "^3.3.1",
+    "plotly.js": "^3.4.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-dropzone": "^14.3.8",

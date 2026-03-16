@@ -43,6 +43,12 @@ class Dataset(SQLModel, table=True):
     # Tracks which node/user initialized the ingestion handshake
     owner_id: Optional[int] = Field(default=None, foreign_key="user.id")
     
+    # --- Version History & Continuity (Functionality 6 & Traceability) ---
+    version_number: int = Field(default=1)
+    parent_dataset_id: Optional[int] = Field(default=None, foreign_key="dataset.id")
+    repair_strategy: Optional[str] = Field(default=None)
+    repair_timestamp: Optional[datetime] = Field(default=None)
+    
     # --- Temporal Metadata ---
     created_at: datetime = Field(
         default_factory=datetime.utcnow,

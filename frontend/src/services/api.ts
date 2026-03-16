@@ -165,32 +165,87 @@ export const applyCleaning = async (
   return response.data;
 };
 
-// --- Simple Authentication Management ---
+// --- Intelligent Data Repair Engine ---
 
-/**
- * Authenticates credentials and initiates a session.
- */
-export const login = async (email: string, password: string): Promise<any> => {
-  const response = await api.post("auth/login", {
-    email: email,
-    password: password,
+export const getRepairRecommendations = async (id: number): Promise<any> => {
+  const response = await api.get(`repair/recommendations/${id}`);
+  return response.data;
+};
+
+export const simulateRepair = async (id: number, column: string, strategy: string): Promise<any> => {
+  const response = await api.post(`repair/simulate`, {
+    dataset_id: id,
+    column,
+    strategy
   });
   return response.data;
 };
 
-/**
- * Registers a new user and returns a session token for immediate redirect.
- */
-export const signup = async (
-  email: string,
-  password: string,
-  fullName: string
-): Promise<any> => {
-  // Requirement: Maps UI 'fullName' to 'name' for backend compatibility
+export const applyRepair = async (id: number, column: string, strategy: string): Promise<{ new_dataset_id: number, new_filename: string }> => {
+  const response = await api.post(`repair/apply`, {
+    dataset_id: id,
+    column,
+    strategy
+  });
+  return response.data;
+};
+
+// --- Repair Analytics & Explanation ---
+
+export const getRepairTimeline = async (id: number, repairSteps: { column: string, strategy: string }[]): Promise<any> => {
+  const response = await api.post(`repair/timeline/${id}`, {
+    repair_steps: repairSteps
+  });
+  return response.data;
+};
+
+export const getRepairTrace = async (id: number, column: string, strategy: string): Promise<any> => {
+  const response = await api.post(`repair/trace`, {
+    dataset_id: id,
+    column,
+    strategy
+  });
+  return response.data;
+};
+
+export const compareStrategies = async (id: number, column: string): Promise<any> => {
+  const response = await api.post(`repair/compare`, {
+    dataset_id: id,
+    column
+  });
+  return response.data;
+};
+
+export const getDatasetQuality = async (id: number): Promise<any> => {
+  const response = await api.get(`quality/${id}`);
+  return response.data;
+};
+
+export const getDatasetVersions = async (id: number): Promise<any> => {
+   const response = await api.get(`versions/${id}`);
+   return response.data;
+}
+
+export const restoreDatasetVersion = async (id: number): Promise<any> => {
+   const response = await api.post(`versions/restore`, { dataset_id: id });
+   return response.data;
+}
+
+// --- Authentication Management ---
+
+export const login = async (email: string, password: string): Promise<any> => {
+  const response = await api.post("auth/login", {
+    email,
+    password,
+  });
+  return response.data;
+};
+
+export const signup = async (email: string, password: string, fullName: string): Promise<any> => {
   const response = await api.post("auth/signup", {
-    name: fullName,
-    email: email,
-    password: password,
+    name: fullName || "User",
+    email,
+    password,
   });
   return response.data;
 };

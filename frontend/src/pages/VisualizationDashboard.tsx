@@ -19,22 +19,26 @@ import {
   Database,
   Table,
   FileCheck,
-  ShieldAlert
+  ShieldAlert,
+  MessageSquarePlus
 } from "lucide-react";
 import { motion } from "framer-motion";
 import * as api from "../services/api";
+import { useChat } from "../context/ChatContext";
 import type { PreviewData, EDASummary } from "../types";
+
+import { useDatasetContext } from "../context/DatasetContext";
 
 interface VisualizationDashboardProps {
   datasetId: number;
 }
 
 const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({ datasetId }) => {
+  const { setCurrentContext, triggerMessage } = useChat();
+  const { preview, summary: edaSummary, loading: contextLoading } = useDatasetContext();
+
   // 🔹 STATE MANAGEMENT
-  const [loading, setLoading] = useState(true);
   const [rendering, setRendering] = useState(false);
-  const [preview, setPreview] = useState<PreviewData | null>(null);
-  const [edaSummary, setEdaSummary] = useState<EDASummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Selection State
@@ -43,33 +47,15 @@ const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({ dataset
   const [yColumn, setYColumn] = useState<string>("");
   const [chartData, setChartData] = useState<any>(null);
 
-  // 🔹 INITIAL DATA FETCH
+  // Auto-select intelligent defaults when data arrives
   useEffect(() => {
-    const fetchContext = async () => {
-      if (!datasetId) return;
-      setLoading(true);
-      try {
-        const [previewData, summaryData] = await Promise.all([
-          api.getDatasetPreview(datasetId),
-          api.getEDASummary(datasetId)
-        ]);
-        setPreview(previewData);
-        setEdaSummary(summaryData);
-
-        // Auto-select first intelligent default
-        const catCols = summaryData.categorical.map(c => c.column);
-        const numCols = summaryData.numeric.map(c => c.column);
-        if (catCols.length > 0) setXColumn(catCols[0]);
-        if (numCols.length > 0) setYColumn(numCols[0]);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load dataset context.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchContext();
-  }, [datasetId]);
+    if (edaSummary && !xColumn) {
+      const catCols = edaSummary.categorical.map(c => c.column);
+      const numCols = edaSummary.numeric.map(c => c.column);
+      if (catCols.length > 0) setXColumn(catCols[0]);
+      if (numCols.length > 0) setYColumn(numCols[0]);
+    }
+  }, [edaSummary, xColumn]);
 
   // 🔹 CHART RENDERING TRIGGER
   useEffect(() => {
@@ -81,6 +67,15 @@ const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({ dataset
         // For others, Y is usually needed or defaults to count
         const data = await api.getChartData(datasetId, xColumn, chartType, yColumn || undefined);
         setChartData(data);
+        
+        // Sync AI Context
+        setCurrentContext({
+            chartType,
+            xAxis: xColumn,
+            yAxis: yColumn || "Count",
+            context: "Visualization Lab",
+            canExplain: true
+        });
       } catch (err) {
         console.error("Render failed:", err);
       } finally {
@@ -143,7 +138,7 @@ const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({ dataset
     return "";
   };
 
-  if (loading) return (
+  if (contextLoading) return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#0B0F19]">
       <Loader2 className="w-16 h-16 text-indigo-500 animate-spin" />
       <p className="text-indigo-400 mt-4 font-mono text-sm tracking-widest animate-pulse">PREPARING VISUAL LAB...</p>
@@ -159,29 +154,8 @@ const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({ dataset
   const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] text-slate-200 font-sans pb-32">
-
-      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-[95%] mx-auto px-6 pt-12 space-y-12">
-
-        {/* 🔹 SECTION 1: VISUALIZATION CONTEXT (ENHANCED LINEAGE) */}
-        <motion.section variants={itemVariants} className="flex flex-col md:flex-row justify-between items-end border-b border-white/5 pb-8 gap-6">
-          <div>
-            <div className="flex items-center gap-2 text-indigo-400 text-xs font-black uppercase tracking-[0.3em] mb-3">
-              <Layout className="w-4 h-4" /> Visual Lab
-            </div>
-            <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-2">
-              Visualizing <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">{preview.filename}</span>
-            </h1>
-            <div className="flex flex-wrap items-center gap-6 text-sm text-slate-400 mt-4">
-              <span className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full"><Table className="w-4 h-4 text-emerald-400" /> {preview.row_count} Rows (0 Removed)</span>
-              <span className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full"><Database className="w-4 h-4 text-emerald-400" /> {preview.column_count} Columns</span>
-              <span className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full font-bold uppercase text-[10px]">
-                <FileCheck className="w-3 h-3" /> Prepared Data
-              </span>
-            </div>
-          </div>
-        </motion.section>
-
+    <div className="py-12">
+      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-12">
         {/* 🔹 SECTION 2: EDUCATION */}
         <motion.section variants={itemVariants}>
           <div className="p-6 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl flex items-start gap-4">
@@ -302,6 +276,17 @@ const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({ dataset
                 </div>
               ) : chartData ? (
                 <div className="w-full h-full relative z-10">
+                  {/* AI Interaction Overlay */}
+                  <div className="absolute top-4 right-4 z-20">
+                      <button 
+                        onClick={() => triggerMessage(`Explain what this ${chartType} chart shows for ${xColumn}${yColumn ? ' and ' + yColumn : ''}. What are the key patterns?`)}
+                        className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full font-bold text-sm shadow-xl shadow-indigo-500/30 transition-all transform hover:scale-105"
+                      >
+                        <MessageSquarePlus className="w-4 h-4" />
+                        Ask AI to Explain Chart
+                      </button>
+                  </div>
+
                   <Plot
                     data={chartData.data}
                     layout={{
@@ -368,7 +353,7 @@ const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({ dataset
                   You have visualized the shapes of your data. Now, let the <strong>Insights Engine</strong> explain what these patterns mean in plain English.
                 </p>
                 <div className="flex gap-4 w-full justify-center">
-                  <Link to={`/dashboard/${datasetId}/insights`} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/20 transition-all transform hover:scale-105">
+                  <Link to={`/dashboard/${datasetId}/chat`} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/20 transition-all transform hover:scale-105">
                     Get AI Insights
                   </Link>
                   <Link to={`/dashboard/${datasetId}/chat`} className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold text-sm border border-white/10 transition-all">

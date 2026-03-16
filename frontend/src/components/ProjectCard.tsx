@@ -118,31 +118,21 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ dataset, onDelete }) => {
             </div>
 
             {/* Action Toolbar */}
-            <div className="mt-auto pt-4 border-t border-white/5 grid grid-cols-4 gap-1">
-                <ActionButton
-                    icon={Eye}
-                    label="View Data"
-                    onClick={() => handleAction('/understanding')}
-                    color="text-slate-400 hover:text-white"
-                />
-                <ActionButton
-                    icon={Search}
-                    label="EDA"
-                    onClick={() => handleAction('/eda')}
-                    color="text-indigo-400 hover:text-indigo-300"
-                />
-                <ActionButton
-                    icon={BarChart2}
-                    label="Visualize"
+            <div className="mt-auto pt-4 border-t border-white/5 space-y-2">
+                <button
+                    onClick={() => handleAction('/analyze')}
+                    className="w-full flex items-center justify-center py-2.5 text-xs font-bold text-white bg-gradient-to-r from-avis-accent-indigo to-avis-accent-cyan rounded-xl hover:shadow-[0_0_20px_rgba(99,102,241,0.3)] transition-all transform hover:-translate-y-0.5 group/btn"
+                >
+                    <BarChart2 className="w-4 h-4 mr-2 group-hover/btn:scale-110 transition-transform" />
+                    Analyze Data
+                </button>
+                <button
                     onClick={() => handleAction('/viz')}
-                    color="text-purple-400 hover:text-purple-300"
-                />
-                <ActionButton
-                    icon={MessageSquare}
-                    label="Ask AI"
-                    onClick={() => handleAction('/chat')}
-                    color="text-emerald-400 hover:text-emerald-300"
-                />
+                    className="w-full flex items-center justify-center py-2.5 text-xs font-bold text-slate-300 border border-white/10 rounded-xl hover:bg-white/5 hover:text-white transition-all"
+                >
+                    <Search className="w-4 h-4 mr-2" />
+                    Visualizations
+                </button>
             </div>
         </motion.div>
     );

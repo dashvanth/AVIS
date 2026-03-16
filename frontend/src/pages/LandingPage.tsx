@@ -50,7 +50,7 @@ const LandingPage: React.FC = () => {
           <div className="space-y-8 text-center lg:text-left">
             <div className="inline-flex items-center px-3 py-1 rounded-full bg-avis-accent-indigo/10 border border-avis-accent-indigo/20 text-avis-accent-indigo text-[10px] font-bold tracking-widest uppercase mb-4">
               <span className="w-1.5 h-1.5 rounded-full bg-avis-accent-indigo mr-2 animate-pulse"></span>
-              A.V.I.S. Smart Discovery v2.0
+              A.V.I.S. Smart Discovery
             </div>
             <h1 className="text-5xl lg:text-8xl font-black leading-[0.9] tracking-tighter">
               Making Data <br />
@@ -59,7 +59,6 @@ const LandingPage: React.FC = () => {
                   words={[
                     "Easy to Understand",
                     "Clear for Everyone",
-                    "Totally Honest",
                     "Beginner Friendly",
                   ]}
                   typingSpeed={80}
@@ -184,27 +183,26 @@ const LandingPage: React.FC = () => {
               title="Upload Anything"
               features={[
                 "Excel & CSV Ready",
-                "JSON & XML Support",
                 "Instant Data Summary",
               ]}
               color="indigo"
             />
             <FeatureCard
               icon={<Binary className="w-7 h-7" />}
-              title="Honest Analysis"
+              title="Data Transparency"
               features={[
                 "See Every Change",
-                "Step-by-Step Cleaning",
+                "Detailed Processing Logs",
                 "Transparent Audit Trail",
               ]}
               color="cyan"
             />
             <FeatureCard
               icon={<Layout className="w-7 h-7" />}
-              title="Guided Insights"
+              title="Intelligent Visuals"
               features={[
                 "Auto-Dashboards",
-                "No Hidden Logic",
+                "Smart Chart Selection",
                 "Simple Explanations",
               ]}
               color="success"
@@ -264,98 +262,6 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Advanced Professional Footer */}
-      <footer className="bg-avis-primary border-t border-avis-border/30 py-20">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-start gap-12 mb-16">
-            <div className="max-w-sm">
-              <h3 className="text-3xl font-black tracking-tighter text-white mb-4">
-                A.V.I.S.
-              </h3>
-              <p className="text-avis-text-secondary text-sm leading-relaxed opacity-70">
-                The Analytical Visual Intelligence System. <br />
-                Dedicated to making complex data analysis honest, visual, and
-                easy for everyone to learn.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-16 text-sm text-avis-text-secondary font-semibold">
-              <div className="space-y-4">
-                <p className="text-[10px] uppercase tracking-widest text-avis-accent-indigo">
-                  Workspace
-                </p>
-                <ul className="space-y-2">
-                  <li>
-                    <button
-                      onClick={() => navigate("/auth")}
-                      className="hover:text-white transition-colors"
-                    >
-                      Log In
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      onClick={() => navigate("/auth")}
-                      className="hover:text-white transition-colors"
-                    >
-                      Sign Up
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      onClick={() => navigate("/app/datasets")}
-                      className="hover:text-white transition-colors"
-                    >
-                      Dataset Hub
-                    </button>
-                  </li>
-                </ul>
-              </div>
-              <div className="space-y-4">
-                <p className="text-[10px] uppercase tracking-widest text-avis-accent-cyan">
-                  Project Info
-                </p>
-                <ul className="space-y-2">
-                  <li>
-                    <a
-                      href="#about"
-                      className="hover:text-white transition-colors"
-                    >
-                      How it works
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="#features"
-                      className="hover:text-white transition-colors"
-                    >
-                      Key Features
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="#workflow"
-                      className="hover:text-white transition-colors"
-                    >
-                      Workflow
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          <div className="pt-8 border-t border-avis-border/20 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-[10px] font-mono text-avis-text-secondary/40 uppercase tracking-widest">
-              © {new Date().getFullYear()} AVIS PROJECT // SOLE DEVELOPER
-              EDITION
-            </p>
-            <div className="flex gap-4 opacity-20">
-              <div className="w-1.5 h-1.5 rounded-full bg-avis-accent-indigo"></div>
-              <div className="w-1.5 h-1.5 rounded-full bg-avis-accent-cyan"></div>
-              <div className="w-1.5 h-1.5 rounded-full bg-avis-accent-success"></div>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

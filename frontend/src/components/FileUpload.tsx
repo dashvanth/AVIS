@@ -69,7 +69,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
         const dataset = await uploadDataset(file);
 
         // Step 4: Done
-        setProcessStep("Redirecting to Dataset Understanding Page...");
+        setProcessStep("Redirecting to Intelligence Workspace...");
         await new Promise((r) => setTimeout(r, 800)); // Give user time to read
         onUploadSuccess(dataset);
       }
@@ -108,22 +108,27 @@ const FileUpload: React.FC<FileUploadProps> = ({
         onDragOver={handleDrag}
         onDragLeave={handleDrag}
         onDrop={handleDrop}
-        onClick={() =>
-          !isProcessing && document.getElementById("file-upload-input")?.click()
-        }
+        onClick={() => {
+          if (!isProcessing) {
+            const inputEl = document.getElementById("file-upload-input");
+            if (inputEl) inputEl.click();
+          }
+        }}
       >
         <input
           id="file-upload-input"
           type="file"
           className="hidden"
-          onChange={(e) =>
-            e.target.files?.[0] && processFile(e.target.files[0])
-          }
+          onChange={(e) => {
+            if (e.target.files && e.target.files.length > 0) {
+              processFile(e.target.files[0]);
+            }
+          }}
           disabled={isProcessing}
           accept=".csv,.xlsx,.xls,.json,.xml"
         />
 
-        <div className="flex flex-col items-center text-center space-y-6 relative z-10">
+        <div className="flex flex-col items-center text-center space-y-6 relative z-10 pointer-events-none">
           <div
             className={`p-6 rounded-2xl transition-all duration-500 bg-slate-800 border border-white/5
                         ${isDragging

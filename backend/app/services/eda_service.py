@@ -5,6 +5,16 @@ from fastapi import HTTPException
 from sqlmodel import Session
 from app.models.dataset import Dataset
 
+from functools import lru_cache
+
+@lru_cache(maxsize=15)
+def _load_dataframe_from_disk(filepath: str) -> pd.DataFrame:
+    """Internal cached loader to prevent redundant disk I/O on large files."""
+    try:
+        return pd.read_csv(filepath)
+    except Exception:
+        return pd.read_csv(filepath, encoding='latin1')
+
 def get_dataframe(dataset_id: int, session: Session) -> pd.DataFrame:
     """
     Functionality 1: Secure Ingestion Node.
@@ -21,12 +31,10 @@ def get_dataframe(dataset_id: int, session: Session) -> pd.DataFrame:
         )
     
     try:
-        return pd.read_csv(dataset.filepath)
-    except Exception:
-        try:
-            return pd.read_csv(dataset.filepath, encoding='latin1')
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Handshake Failure: Matrix corrupted ({str(e)})")
+        df = _load_dataframe_from_disk(dataset.filepath)
+        return df.copy() # Protect cached instance from mutation
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Handshake Failure: Matrix corrupted ({str(e)})")
 
 def get_summary_statistics(dataset_id: int, session: Session):
     """
@@ -111,23 +119,38 @@ def get_summary_statistics(dataset_id: int, session: Session):
 def get_missing_values(dataset_id: int, session: Session):
     """
     Functionality 3.1: Gaps Audit Transparency.
+    Optimized: Reads from JSON metadata instead of memory loading pandas.
     """
-    df = get_dataframe(dataset_id, session)
-    total_rows = len(df)
-    
+    import json
+    import re
+    dataset = session.get(Dataset, dataset_id)
+    if not dataset:
+        return []
+        
+    total_rows = dataset.row_count
     missing_data = []
-    for col in df.columns:
-        m_count = int(df[col].isnull().sum())
-        if m_count > 0:
-            pct = (m_count / total_rows) * 100
-            impact = "Low" if pct < 2 else "Moderate" if pct < 10 else "Critical"
-            missing_data.append({
-                "column": col,
-                "missing_count": m_count,
-                "missing_percentage": round(pct, 2),
-                "impact_level": f"{impact} Impact Gap",
-                "logic_desc": f"The system scanned {total_rows} rows and identified {m_count} empty cells."
-            })
+    
+    if dataset.ingestion_insights:
+        try:
+            insights = json.loads(dataset.ingestion_insights)
+            for issue in insights.get("data_issues", []):
+                if issue.get("issue_type") == "Missing Value":
+                    col = issue.get("column_name")
+                    match = re.search(r'has (\d+) empty', issue.get("explanation", ""))
+                    m_count = int(match.group(1)) if match else 1
+                    
+                    pct = (m_count / total_rows) * 100 if total_rows else 0
+                    impact = "Low" if pct < 2 else "Moderate" if pct < 10 else "Critical"
+                    
+                    missing_data.append({
+                        "column": col,
+                        "missing_count": m_count,
+                        "missing_percentage": round(pct, 2),
+                        "impact_level": f"{impact} Impact Gap",
+                        "logic_desc": f"The system quickly recalled {m_count} empty cells from the audit log."
+                    })
+        except Exception:
+            pass
             
     return sorted(missing_data, key=lambda x: x['missing_count'], reverse=True)
 
