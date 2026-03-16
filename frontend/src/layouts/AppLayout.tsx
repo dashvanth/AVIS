@@ -113,14 +113,12 @@ const AppLayout: React.FC = () => {
                 return (
                   <div key={step.id} className="flex items-center">
                     <NavLink
-                      to={status === "future" ? "#" : step.path}
+                      to={step.path}
                       className={`
                         px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all
                         ${isActive 
                           ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20" 
-                          : status === "future"
-                            ? "text-slate-600 cursor-not-allowed opacity-40"
-                            : "text-slate-400 hover:text-white"
+                          : "text-slate-400 hover:text-white"
                         }
                       `}
                     >
