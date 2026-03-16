@@ -1,5 +1,5 @@
-import { Sparkles, ArrowRight, Bot, MessageSquarePlus } from "lucide-react";
-import { useChat } from "../context/ChatContext";
+import React from "react";
+import { Sparkles, ArrowRight, Wrench, ShieldCheck, Activity } from "lucide-react";
 
 interface RepairSuggestionCardProps {
   column: string;
@@ -11,6 +11,7 @@ interface RepairSuggestionCardProps {
   onApply: () => void;
   onCompare?: () => void;
   isLoading?: boolean;
+  impactPercentage?: string | number;
 }
 
 export const RepairSuggestionCard: React.FC<RepairSuggestionCardProps> = ({
@@ -23,107 +24,88 @@ export const RepairSuggestionCard: React.FC<RepairSuggestionCardProps> = ({
   onApply,
   onCompare,
   isLoading = false,
+  impactPercentage,
 }) => {
-  const { triggerMessage } = useChat();
-
-  const handleAiAsk = () => {
-    triggerMessage(`Explain why the "${recommendedStrategy}" strategy is recommended for fixing "${issue}" in '${column}'. What are the trade-offs?`, {
-      component: "RepairSuggestionCard",
-      column,
-      issue,
-      strategy: recommendedStrategy
-    });
-  };
-
   return (
-    <div className="bg-slate-800/80 border border-indigo-500/30 rounded-xl overflow-hidden relative group transition-all hover:border-indigo-500/60">
-      {/* AI Glow Effect */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500"></div>
+    <div className="bg-slate-900/40 border border-white/10 rounded-[2rem] overflow-hidden relative group transition-all hover:border-indigo-500/50 backdrop-blur-xl">
+      {/* Strategy Indicator Bar */}
+      <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500/50 to-emerald-500/50"></div>
       
-      <button 
-        onClick={handleAiAsk}
-        className="absolute top-4 right-20 opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-indigo-500/10 rounded-lg hover:bg-indigo-500/20 text-indigo-400 flex items-center gap-2 text-[10px] font-bold uppercase tracking-tighter border border-indigo-500/20"
-      >
-        <MessageSquarePlus className="w-3 h-3" />
-        Ask AI
-      </button>
-
-      <div className="p-5">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-500/20 rounded-lg border border-indigo-500/30 text-indigo-400">
-              <Bot className="w-5 h-5" />
+      <div className="p-8">
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 text-indigo-400">
+              <Wrench className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="text-slate-200 font-semibold">{issue} in '{column}'</h4>
-              <p className="text-xs text-slate-400">A.I. Generated Repair Protocol</p>
+              <h4 className="text-xl font-black text-white italic tracking-tight">Column: <span className="text-indigo-400">{column}</span></h4>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{issue}</span>
+                {impactPercentage && (
+                   <span className="text-[10px] font-black text-red-400 uppercase tracking-widest bg-red-400/10 px-2 py-0.5 rounded">
+                     {impactPercentage}% Impact
+                   </span>
+                )}
+              </div>
             </div>
           </div>
           <div className="text-right">
-            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold ${
+            <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest ${
               confidenceScore >= 0.8 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" :
               confidenceScore >= 0.6 ? "bg-amber-500/10 border-amber-500/20 text-amber-400" :
               "bg-red-500/10 border-red-500/20 text-red-400"
             }`}>
-              <Sparkles className="w-3 h-3" />
-              {Math.round(confidenceScore * 100)}% Confidence
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Algorithmic Confidence: {Math.round(confidenceScore * 100)}%
             </div>
           </div>
         </div>
 
-        <div className="bg-slate-900/50 rounded-lg p-4 mb-5 border border-slate-700/50">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">
-                Strategy
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-black/20 rounded-3xl p-6 border border-white/5">
+            <div>
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-2">
+                <Activity className="w-3 h-3" /> Recommended Strategy
               </span>
-              <p className="text-slate-200 font-medium">{recommendedStrategy}</p>
-            </div>
-            <div className="hidden md:flex items-center text-slate-600">
-              <ArrowRight className="w-5 h-5" />
-            </div>
-            <div className="flex-1">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">
-                Reasoning
-              </span>
-              <p className="text-slate-400 text-sm leading-relaxed">
-                {explanation}
+              <p className="text-white font-mono text-sm font-bold bg-white/5 p-3 rounded-xl border border-white/5">
+                {recommendedStrategy}
               </p>
             </div>
-          </div>
+            <div>
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">
+                Deterministic Justification
+              </span>
+              <p className="text-slate-400 text-xs leading-relaxed italic font-medium">
+                "{explanation}"
+              </p>
+            </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-slate-700/50 pt-4 mt-2">
+        <div className="flex items-center justify-end gap-4 border-t border-white/5 pt-6">
           {onCompare && (
              <button
                 onClick={onCompare}
                 disabled={isLoading}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors disabled:opacity-50 mr-auto"
+                className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400 hover:text-white transition-all disabled:opacity-50 mr-auto"
              >
-                Compare Strategies
+                Compare Alternatives
              </button>
           )}
-          <button
-            onClick={handleAiAsk}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-colors"
-          >
-            <Bot className="w-4 h-4" />
-            Explain Strategy
-          </button>
+          
           <button
             onClick={onPreview}
             disabled={isLoading}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700 transition-colors disabled:opacity-50"
+            className="px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-white hover:bg-white/5 border border-white/10 transition-all disabled:opacity-50 flex items-center gap-2"
           >
-            Preview Fix
+            Preview Transformation
           </button>
+          
           <button
             onClick={onApply}
             disabled={isLoading}
-            className="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+            className="px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-indigo-500 hover:bg-indigo-600 text-white shadow-xl shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
           >
             {isLoading ? "Executing..." : "Apply Repair"}
-            <Sparkles className="w-4 h-4" />
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>

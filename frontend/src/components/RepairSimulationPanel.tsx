@@ -24,6 +24,7 @@ export interface SimulationData {
   histogram_before?: number[];
   histogram_after?: number[];
   histogram_bins?: number[];
+  transformed_rows?: any[];
   distribution_shift?: number;
   correlation_impact?: number;
   information_loss?: number;
