@@ -16,7 +16,6 @@ import { useChat } from "../context/ChatContext";
 import { StatMetricCard } from "../components/StatMetricCard";
 import { HealthScoreCard } from "../components/HealthScoreCard";
 import { DatasetQualityRadar } from "../components/DatasetQualityRadar";
-import { HealthTimeline } from "../components/HealthTimeline";
 import { DataIssueCard } from "../components/DataIssueCard";
 import DataDrilldownModal from "../components/DataDrilldownModal";
 import HealthDetailModal from "../components/HealthDetailModal";
@@ -30,8 +29,7 @@ const AnalyzePage: React.FC = () => {
     preview, 
     summary, 
     repairData, 
-    qualityData, 
-    timelineData 
+    qualityData
   } = useDatasetContext();
   
   const { triggerMessage } = useChat();
@@ -165,12 +163,6 @@ const AnalyzePage: React.FC = () => {
              />
              {qualityData && <DatasetQualityRadar metrics={qualityData} onMetricClick={handleMetricClick} />}
           </div>
-          
-          {timelineData.length > 0 && (
-             <div className="mt-8">
-               <HealthTimeline timeline={timelineData} />
-             </div>
-          )}
         </section>
 
         {/* SECTION 2: DATA QUALITY DIAGNOSTICS */}

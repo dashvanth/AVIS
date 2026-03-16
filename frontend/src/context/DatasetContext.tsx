@@ -13,8 +13,6 @@ interface DatasetContextValue {
   correlation: CorrelationData | null;
   repairData: any | null;
   qualityData: QualityMetrics | null;
-  timelineData: any[];
-
   refreshData: () => Promise<void>;
 }
 
@@ -42,7 +40,6 @@ export const DatasetProvider: React.FC<DatasetProviderProps> = ({ id, children }
   const [correlation, setCorrelation] = useState<CorrelationData | null>(null);
   const [repairData, setRepairData] = useState<any>(null);
   const [qualityData, setQualityData] = useState<QualityMetrics | null>(null);
-  const [timelineData, setTimelineData] = useState<any[]>([]);
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -64,22 +61,7 @@ export const DatasetProvider: React.FC<DatasetProviderProps> = ({ id, children }
       setRepairData(repairInfo);
       setQualityData(qualityInfo);
 
-      // Fetch timeline if recommendations exist
-      if (repairInfo.recommendations && repairInfo.recommendations.length > 0) {
-        try {
-          const steps = repairInfo.recommendations.map((r: any) => ({
-            column: r.column,
-            strategy: r.recommended_strategy
-          }));
-          const tData = await api.getRepairTimeline(datasetId, steps);
-          setTimelineData(tData.timeline || []);
-        } catch (timelineErr) {
-          console.warn("Could not fetch health timeline:", timelineErr);
-          setTimelineData([]);
-        }
-      } else {
-        setTimelineData([]);
-      }
+      setQualityData(qualityInfo);
     } catch (err: any) {
       console.error("DatasetContext Fetch Error:", err);
       setError("Unable to initialize dataset context.");
@@ -101,7 +83,6 @@ export const DatasetProvider: React.FC<DatasetProviderProps> = ({ id, children }
     correlation,
     repairData,
     qualityData,
-    timelineData,
     refreshData: fetchData
   };
 
