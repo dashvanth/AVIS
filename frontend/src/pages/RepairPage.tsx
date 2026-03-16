@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Wrench, Stethoscope, Activity, Target, AlertCircle, ShieldAlert } from "lucide-react";
+import { Wrench, Stethoscope, Activity, Target, AlertCircle, ShieldAlert, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as api from "../services/api";
 import { useDatasetContext } from "../context/DatasetContext";
@@ -29,6 +29,7 @@ const RepairPage: React.FC = () => {
   const [activeTrace, setActiveTrace] = useState<RepairTraceData | null>(null);
   const [compareOpen, setCompareOpen] = useState(false);
   const [compareData, setCompareData] = useState<StrategyComparisonData | null>(null);
+  const [visibleRecommendations, setVisibleRecommendations] = useState(2);
 
   const handlePreviewFix = async (column: string, strategy: string) => {
     if (!datasetId) return;
@@ -147,21 +148,39 @@ const RepairPage: React.FC = () => {
           </div>
           
           {allRecommendations.length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {allRecommendations.map((rec: any, idx: number) => (
-                <RepairSuggestionCard 
-                  key={idx}
-                  column={rec.column}
-                  issue={rec.issue}
-                  confidenceScore={rec.confidence_score}
-                  recommendedStrategy={rec.recommended_strategy}
-                  explanation={rec.explanation}
-                  isLoading={submitting}
-                  impactPercentage={((allIssues.find((i:any) => i.column === rec.column && i.issue === rec.issue)?.count || 0) / preview.row_count * 100).toFixed(1)}
-                  onPreview={() => handlePreviewFix(rec.column, rec.recommended_strategy)}
-                  onApply={() => handleApplyFinal(rec.column, rec.recommended_strategy)}
-                />
-              ))}
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {allRecommendations.slice(0, visibleRecommendations).map((rec: any, idx: number) => (
+                  <RepairSuggestionCard 
+                    key={idx}
+                    column={rec.column}
+                    issue={rec.issue}
+                    confidenceScore={rec.confidence_score}
+                    recommendedStrategy={rec.recommended_strategy}
+                    explanation={rec.explanation}
+                    isLoading={submitting}
+                    impactPercentage={((allIssues.find((i:any) => i.column === rec.column && i.issue === rec.issue)?.count || 0) / preview.row_count * 100).toFixed(1)}
+                    onPreview={() => handlePreviewFix(rec.column, rec.recommended_strategy)}
+                    onApply={() => handleApplyFinal(rec.column, rec.recommended_strategy)}
+                  />
+                ))}
+              </div>
+
+              {allRecommendations.length > visibleRecommendations && (
+                <div className="flex justify-center pt-4">
+                   <button 
+                      onClick={() => setVisibleRecommendations(prev => prev + 2)}
+                      className="group flex flex-col items-center gap-3 transition-all"
+                   >
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] group-hover:text-indigo-400 transition-colors">
+                        Expand Repair Protocols ({allRecommendations.length - visibleRecommendations} Remaining)
+                      </span>
+                      <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center group-hover:border-indigo-500/50 group-hover:bg-indigo-500/10 transition-all">
+                         <ChevronDown className="w-5 h-5 text-slate-500 group-hover:text-indigo-400 group-hover:translate-y-0.5 transition-all" />
+                      </div>
+                   </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="p-16 bg-emerald-500/5 border border-emerald-500/10 rounded-[3rem] text-center backdrop-blur-md">
