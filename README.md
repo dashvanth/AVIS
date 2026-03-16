@@ -1,167 +1,255 @@
-# A.V.I.S. - Analytical Visual Intelligence System
+# A.V.I.S. — Automated Visualization and Intelligent Simulation System
 
-![AVIS Banner](https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge) ![Tech Stack](https://img.shields.io/badge/Stack-Full%20Stack-blue?style=for-the-badge) ![License](https://img.shields.io/badge/License-MIT-purple?style=for-the-badge)
+A.V.I.S. is a research-oriented data quality analysis and repair system designed to provide transparent, explainable, and non-destructive data preprocessing.
 
-**A.V.I.S.** is a next-generation **Automated Exploratory Data Analysis (EDA) & Intelligence Platform** designed to democratize data science. It transforms raw CSV uploads into actionable insights, interactive 3D visualizations, and forensic data quality reports instantly—no coding required.
-
-Built with a **Modern Full-Stack Architecture**, A.V.I.S. bridges the gap between complex data processing and intuitive, beautiful user interfaces.
+Unlike traditional exploratory data analysis tools, A.V.I.S. introduces a simulation-first approach, allowing users to evaluate the impact of data repair strategies before modifying the dataset.
 
 ---
 
-## 🚀 Key Features
+🚀 Core Idea
 
-### ⚖️ 1. Deterministic Analytical Engine (NEW)
-*   **"Professor-Level" Explainability**: Every score (Health, Quality) is mathematically proven with raw data anchors.
-*   **Audit Detail Modals**: Interactive breakdown of calculations (`Score = 1 - Penalty`) with column-level impact analysis.
-*   **Record-Level Trace**: Inspect the actual raw records (Row IDs, Values) behind every structural anomaly.
+Modern data preprocessing is often destructive and opaque. Once a cleaning method is applied, the original statistical properties may be lost without visibility.
 
-### 🔍 2. Forensic Transparency Engine
-*   **"Glass Box" Processing**: Unlike black-box tools, A.V.I.S. shows you exactly what happens to your data.
-*   **Real-time Audit Logs**: Track every null value filled, row removed, and type inferred with a live console log.
-*   **Before vs. After**: Visual diffs of your dataset's health evolution.
+A.V.I.S. solves this by introducing:
 
-### 📊 3. Automated EDA & Intelligence Laboratory
-*   **Quality Profiling Matrix**: A multidimensional radar chart for Completeness, Consistency, Uniqueness, and Validity.
-*   **Intelligence Lab**: Instant statistical deep-dives, correlation heatmaps, and pattern detection.
-*   **Draggable Dashboards**: Arranging charts in a fully customizable layout engine.
-
-### 🧠 4. AI-Powered Insights (Hybrid RAG)
-*   **Deterministic Fallbacks**: AI is used for narrative, while core diagnostics are 100% data-anchored for academic rigor.
-*   **Context-Aware Chat**: Advanced RAG that understands column distributions and hidden correlations.
-*   **Report Generation**: Pro-grade executive summaries in Markdown/PDF.
+- Explainable Data Quality Metrics
+- Simulation-Based Repair Engine
+- Version-Controlled Dataset Evolution
+- Deterministic Analysis (No black-box decisions)
 
 ---
 
-## 🛠️ Technology Stack
+🧠 System Workflow
 
-Though we follow the principles of the **MERN** data flow (Component-Driven Frontend, RESTful API), we have supercharged the backend with Python for superior data science capabilities.
+A.V.I.S. follows a structured analytical pipeline:
 
-### **Frontend (The "View")**
-*   **Framework**: React 18 (Vite)
-*   **Language**: TypeScript (Strict Mode)
-*   **Styling**: Tailwind CSS + Custom Animations
-*   **Visualize**: Recharts + Lucide Icons
-*   **State**: React Hooks + Context API
+1. **Upload Dataset**
+2. **Analyze** (Understanding & Diagnostics)
+3. **Repair** (Simulation & Application)
+4. **Statistics** (Distribution Analysis)
+5. **Visualization** (Exploration)
 
-### **Backend (The "Brain")**
-*   **Framework**: FastAPI (Async/Await)
-*   **Data Processing**: Pandas, NumPy, Scikit-Learn
-*   **Database**: MySQL (SQLModel/SQLAlchemy ORM)
-*   **AI Engine**: Groq (Llama 3) / OpenAI Integration
-*   **Validation**: Pydantic v2
-
----
-
-## 📸 Screenshots
-
-### 1. Landing Page (Home)
-*The gateway to A.V.I.S. featuring a modern, high-conversion design.*
-![Landing Page](Assets/screenshots/landing_page.jpg)
-
-### 2. Secure Authentication
-*User-friendly Login & Signup flow.*
-![Login](Assets/screenshots/Login_SignUppage.jpg)
-
-### 3. The Command Center (Dashboard)
-*A sleek, dark-mode interface giving you a holistic view of your data projects.*
-![Dashboard](Assets/screenshots/dashboard_page.jpg)
-
-### 4. Data Ingestion & Forensic Console
-*Upload datasets and watch the Transparency Engine clean them in real-time.*
-![Upload](Assets/screenshots/upload_dataset_page.jpg)
-![Forensic Console](Assets/screenshots/data_preparation_page3.jpg)
-
-### 5. Automated EDA
-*Instant statistical analysis, distribution checks, and correlation matrices.*
-![EDA](Assets/screenshots/eda_page1.jpg)
-![EDA Details](Assets/screenshots/eda_page3.jpg)
-
-### 6. Interactive Visualizations
-*Dynamic 3D charts and heatmaps that respond to your data filters.*
-![Visualization](Assets/screenshots/visualizatoinpage1.jpg)
-![Visualization Config](Assets/screenshots/visualizatoinpage2.jpg)
-
-### 7. AI Assistant & Insights
-*Context-aware chat helping you understand your data patterns.*
-![AI Assistant](Assets/screenshots/AI_assistant1.jpg)
-
-### 8. Export Center
-*Download cleaned datasets and generated reports.*
-![Export](Assets/screenshots/export_page1.jpg)
-
----
-
-## 🏗️ Installation & Setup
-
-### Prerequisites
-*   Node.js (v18+)
-*   Python (v3.9+)
-*   MySQL Server (Optional, defaults to SQLite for dev)
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/dashvanth/AVIS.git
-cd AVIS/avis
+```text
+Upload Dataset
+        ↓
+Analyze (Understanding & Diagnostics)
+        ↓
+Repair (Simulation & Application)
+        ↓
+Statistics (Distribution Analysis)
+        ↓
+Visualization (Exploration)
 ```
 
-### 2. Backend Setup
+---
+
+🔍 Key Features
+
+### 1. Deterministic Data Quality Engine
+
+- Computes dataset health using measurable factors:
+  - Completeness (missing values)
+  - Consistency (duplicates)
+  - Uniqueness
+  - Type Integrity
+- All scores are traceable to raw data
+- No hidden logic or AI-based scoring
+
+---
+
+### 2. Interactive Dataset Diagnostics
+
+- **Dataset Overview**:
+  - Rows, Columns, Missing Values, Duplicates
+- **Quality Profile** (Radar Metrics)
+- **Column-Level Issue Detection**:
+  - Missing values
+  - Outliers
+  - Type mismatches
+- **Record-level inspection** via modal views
+
+---
+
+### 3. Simulation-Based Repair Engine (Core Contribution)
+
+Instead of directly modifying data:
+
+- Creates a temporary dataset copy
+- Applies repair strategies:
+  - Mean Imputation
+  - Median Imputation
+  - KNN-based Imputation
+- Shows:
+  - Before vs After distributions
+  - Impact on statistics
+  - Data changes preview
+
+---
+
+### 4. Strategy Comparison Engine
+
+- Compares multiple repair strategies
+- Evaluates based on:
+  - Data quality improvement
+  - Statistical distortion
+- Helps select optimal repair method
+
+---
+
+### 5. Dataset Versioning System
+
+Every repair creates a new dataset version:
+
+```text
+Original Dataset (v1)
+        ↓
+After Repair (v2)
+        ↓
+Further Repair (v3)
+```
+
+- Enables undo / restore
+- Maintains full lineage
+- Prevents destructive overwrites
+
+---
+
+### 6. Statistical Analysis Engine
+
+Provides structured analysis of dataset properties:
+
+**Numerical Analysis**
+- Distribution plots
+- Mean, Median, Standard Deviation
+- Skewness detection
+
+**Categorical Analysis**
+- Frequency distributions
+- Mode detection
+- Category imbalance
+
+---
+
+### 7. Transparent Data Interaction (NEW)
+
+- Clicking any metric shows:
+  - Actual rows and columns involved
+  - Real data values
+  - Expandable tables
+- No AI chat interruptions for core analysis
+- Designed for academic explainability
+
+---
+
+🛠️ Technology Stack
+
+**Frontend**
+- React 18 + TypeScript
+- Tailwind CSS
+- Plotly.js (Data Visualization)
+- Context API (DatasetContext for shared state)
+
+**Backend**
+- FastAPI (Async API Layer)
+- Pandas, NumPy (Data Processing)
+- Scikit-learn (Imputation Models)
+- SQLAlchemy / SQLModel
+- MySQL / SQLite
+
+---
+
+🏗️ Architecture Overview
+
+The system follows a layered architecture:
+
+```text
+Frontend (React UI)
+        ↓
+FastAPI Backend
+        ↓
+Data Processing Layer (Pandas / NumPy)
+        ↓
+Database + File Storage
+```
+
+**Key Design Principle**: Separation of Analysis, Repair, and Visualization.
+
+---
+
+📊 Research Contributions
+
+- Introduces Counterfactual Data Repair Simulation
+- Provides Explainable Data Quality Metrics
+- Ensures Non-Destructive Data Cleaning
+- Enables Version-Based Dataset Governance
+
+---
+
+⚙️ Installation & Setup
+
+### Prerequisites
+- Node.js (v18+)
+- Python (v3.9+)
+
+### Backend Setup
 ```bash
 cd backend
 python -m venv venv
-# Windows:
+
+# Windows
 venv\Scripts\activate
-# Mac/Linux:
+
+# Mac/Linux
 source venv/bin/activate
 
 pip install -r requirements.txt
 ```
 
-**Environment Variables** (`backend/.env`):
+**Create ".env" file**:
 ```env
 DATABASE_URL=sqlite:///./avis.db
-GROQ_API_KEY=your_key_here
-SECRET_KEY=your_secret
+SECRET_KEY=your_secret_key
 ```
 
-Start the Server:
+**Run server**:
 ```bash
 uvicorn main:app --reload
 ```
 
-### 3. Frontend Setup
-Open a new terminal:
+### Frontend Setup
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Visit `http://localhost:5173` to launch A.V.I.S!
+**Open**: http://localhost:5173
 
 ---
 
-## ☁️ Deployment
+📌 Future Enhancements
 
-We use a **Split Strategy** for maximum performance:
-
-| Component | Host | Reason |
-| :--- | :--- | :--- |
-| **Frontend** | **Vercel** | Fast Edge CDN for static assets & React SPA. |
-| **Backend** | **Render** | Dedicated Python compute environment for heavy ML libraries. |
+- Correlation heatmap integration
+- Large-scale dataset support (beyond Pandas)
+- Advanced anomaly detection
+- Multi-dataset comparison system
 
 ---
 
-## 🤝 Contributing
+🤝 Contribution
 
-We welcome contributions! Please see `CONTRIBUTING.md` for details on our code of conduct and development process.
-
-1.  Fork the Project
-2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4.  Push to the Branch (`git push origin feature/AmazingFeature`)
-5.  Open a Pull Request
+Contributions are welcome. Please fork the repository and submit a pull request.
 
 ---
 
-**Designed & Developed by Dashvanth**
-*2025 A.V.I.S. Project*
+👨‍💻 Author
+
+**Dashvanth Raj H C**
+Department of Computer Applications
+PES University, Bangalore, India
+
+---
+
+📄 License
+
+This project is developed for academic and research purposes.
