@@ -48,38 +48,38 @@ def get_summary_statistics(dataset_id: int, session: Session):
     numeric_dict = []
     
     if not numeric_df.empty:
-        # Fill missing with 0 for internal calculations to prevent crash
-        calc_df = numeric_df.fillna(0)
-        desc = calc_df.describe().T.reset_index()
+        # Compute stats on actual data (skip NaNs, do NOT fill with 0)
+        desc = numeric_df.describe().T.reset_index()
         desc.columns = ['column', 'count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']
         
         for _, row in desc.iterrows():
             col_name = row['column']
-            skew = calc_df[col_name].skew()
+            col_data = numeric_df[col_name].dropna()
+            skew = float(col_data.skew()) if len(col_data) > 2 else 0.0
             
-            # --- Advanced Step Reasoning (Functionality 3) ---
+            # --- Simple, clear reasoning ---
             logic_steps = [
-                "Summed all numerical entries and divided by total count to find the 'Mean'.",
-                "Calculated standard deviation to measure how far data points 'stray' from the average.",
-                f"Performed a skewness test ({skew:.2f}) to detect if data clusters at extreme ends."
+                f"Calculated the average (mean) of {int(row['count'])} values in this column.",
+                f"Measured how spread out the values are (standard deviation = {row['std']:.2f}).",
+                f"Checked if values lean to one side (skewness = {skew:.2f})."
             ]
             
-            insight = "Your data is balanced around the center."
+            insight = "Values are evenly spread — no unusual patterns."
             if abs(skew) > 1:
-                insight = f"Heavy Clumping: Most values sit at the {'bottom' if skew > 0 else 'top'} of the range."
-            elif row['std'] > row['mean']:
-                insight = "High Volatility: The values vary significantly from one row to the next."
+                insight = f"Values are clustered toward the {'lower' if skew > 0 else 'higher'} end of the range."
+            elif row['std'] > row['mean'] and row['mean'] > 0:
+                insight = "Values vary widely — there's a big difference between the smallest and largest entries."
             elif row['std'] < (row['mean'] * 0.05) and row['std'] != 0:
-                insight = "High Consistency: Values are nearly identical across the entire column."
+                insight = "Values are very consistent — most entries are nearly the same."
             
             numeric_dict.append({
                 **row.replace({np.nan: None}).to_dict(),
                 "skew": round(skew, 2),
                 "insight": insight,
-                "logic_desc": " | ".join(logic_steps) # Explicit backend steps
+                "logic_desc": " | ".join(logic_steps)
             })
 
-    # 2. Qualitative Logic: Label Frequency Audit
+    # 2. Text / Category Columns
     categorical_df = df.select_dtypes(exclude=[np.number])
     categorical_summary = []
     
@@ -87,26 +87,25 @@ def get_summary_statistics(dataset_id: int, session: Session):
         counts = categorical_df[col].value_counts().head(5).to_dict()
         unique_count = int(categorical_df[col].nunique())
         
-        # Diversity Reasoning
-        diversity = "Balanced Groups"
-        reasoning = "The system grouped identical labels to see which category dominates your data."
+        diversity = "Balanced"
+        insight = "Values are spread across multiple categories."
         
         if unique_count > (len(df) * 0.8):
-            diversity = "Unique ID Pattern"
-            reasoning = "Almost every row has a different label. This column likely acts as an ID or name."
+            diversity = "Unique ID"
+            insight = "Almost every row has a different value — this column is likely an ID or name."
         elif unique_count == 1:
-            diversity = "Static Label"
-            reasoning = "This column provides no variety; every row contains the exact same information."
+            diversity = "Single Value"
+            insight = "Every row has the same value — this column has no variety."
         elif unique_count < 5:
-            diversity = "High Concentration"
-            reasoning = "Data is funneled into a few very specific buckets, great for group analysis."
+            diversity = "Few Categories"
+            insight = "Only a few distinct values — good for grouping and comparison."
             
         categorical_summary.append({
             "column": col,
             "unique_count": unique_count,
             "top_values": counts,
             "diversity_index": diversity,
-            "logic_desc": reasoning
+            "insight": insight
         })
         
     return {

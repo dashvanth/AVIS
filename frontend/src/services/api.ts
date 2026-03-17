@@ -190,6 +190,13 @@ export const applyRepair = async (id: number, column: string, strategy: string):
   return response.data;
 };
 
+export const applyAllRepairs = async (id: number): Promise<any> => {
+  const response = await api.post(`repair/apply_all`, {
+    dataset_id: id
+  });
+  return response.data;
+};
+
 // --- Repair Analytics & Explanation ---
 
 export const getRepairTimeline = async (id: number, repairSteps: { column: string, strategy: string }[]): Promise<any> => {

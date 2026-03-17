@@ -104,14 +104,8 @@ def generate_recommendations(dataset_id: int, session: Session):
         elif issue_type == "Duplicate Rows":
             rec["recommended_strategy"] = "Duplicate Removal"
             rec["confidence_score"] = calculate_repair_confidence(col, issue_type, df, "Duplicate Removal", corr_matrix)
-            rec["explanation"] = "Identical rows detected. Safe to remove to avoid analysis bias."
+            rec["explanation"] = "Identical rows detected. Removing duplicates prevents bias in analysis."
             rec["alternatives"] = ["Keep Rows"]
-            
-        elif issue_type == "Outliers":
-            rec["recommended_strategy"] = "Outlier Removal"
-            rec["confidence_score"] = calculate_repair_confidence(col, issue_type, df, "Outlier Removal", corr_matrix)
-            rec["explanation"] = "Outliers may distort statistical models. Consider removal or transformation."
-            rec["alternatives"] = ["Cap at IQR Bounds", "Keep Outliers"]
             
         elif issue_type == "Incorrect Data Type":
             rec["recommended_strategy"] = "Type Conversion"
@@ -119,19 +113,12 @@ def generate_recommendations(dataset_id: int, session: Session):
             rec["explanation"] = "Data format restricts calculations. Converting to Number is highly recommended."
             rec["alternatives"] = []
             
-        elif issue_type == "Skewed Distribution":
-            col_type = detect_column_type(df[col], col)
-            if col_type == "CONTINUOUS":
-                rec["recommended_strategy"] = "Log Transformation"
-                rec["confidence_score"] = calculate_repair_confidence(col, issue_type, df, "Log Transformation", corr_matrix)
-                rec["explanation"] = "Highly skewed continuous variables can compromise model assumptions. Log scale normalizes them."
-                rec["alternatives"] = ["Keep As Is"]
-            else:
-                # For DISCRETE_INT, we don't suggest Log Transform by default as it destroys semantic meaning
-                rec["recommended_strategy"] = "Cap at IQR Bounds"
-                rec["confidence_score"] = calculate_repair_confidence(col, issue_type, df, "Cap at IQR Bounds", corr_matrix)
-                rec["explanation"] = "Count-based data shows natural skew. Capping outliers is preferred over log-scaling to preserve unit meaning."
-                rec["alternatives"] = ["Keep As Is"]
+        elif issue_type in ("Outliers", "Skewed Distribution"):
+            # These are statistical observations, NOT data quality issues.
+            # Do NOT recommend destructive transformations (IQR capping, log scaling).
+            # Outliers and skew are valid data — removing or capping them destroys real information.
+            continue
+
             
         if rec["recommended_strategy"]:
             recommendations.append(rec)

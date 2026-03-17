@@ -45,7 +45,8 @@ def detect_issues(dataset_id: int, session: Session):
                 "ratio": m_count / total_rows,
                 "missing_percentage": missing_pct,
                 "affected_row_indices": affected_indices,
-                "severity": "High" if (m_count / total_rows) > 0.1 else "Medium"
+                "severity": "High" if (m_count / total_rows) > 0.1 else "Medium",
+                "details": f"{m_count} empty cell{'s' if m_count != 1 else ''} found in column '{col}' ({missing_pct}% of rows)"
             })
             total_missing += m_count
 
@@ -63,7 +64,8 @@ def detect_issues(dataset_id: int, session: Session):
             "ratio": dup_count / total_rows,
             "duplicate_row_indices": dup_indices,
             "sample_rows": sample_rows,
-            "severity": "Low"
+            "severity": "Low",
+            "details": f"{dup_count} row{'s are' if dup_count != 1 else ' is'} an exact copy of another row"
         })
          
     duplicate_ratio = dup_count / total_rows if total_rows > 0 else 0

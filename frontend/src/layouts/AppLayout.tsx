@@ -9,7 +9,6 @@ import {
   Download,
   User,
   ChevronRight,
-  Calculator
 } from "lucide-react";
 import { getDatasets, getDownloadUrl } from "../services/api";
 import type { Dataset } from "../types";
@@ -45,7 +44,6 @@ const AppLayout: React.FC = () => {
   const steps = [
     { id: "analyze", label: "Analyze", path: `/dashboard/${id}/analyze`, icon: Activity },
     { id: "repair", label: "Repair", path: `/dashboard/${id}/repair`, icon: Zap },
-    { id: "statistics", label: "Statistics", path: `/dashboard/${id}/statistics`, icon: Calculator },
     { id: "viz", label: "Visualize", path: `/dashboard/${id}/viz`, icon: PieChart },
   ];
 

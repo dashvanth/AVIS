@@ -12,7 +12,6 @@ import LandingPage from "./pages/LandingPage";
 import DashboardHome from "./pages/DashboardHome";
 import AnalyzePage from "./pages/AnalyzePage";
 import RepairPage from "./pages/RepairPage";
-import StatisticsPage from "./pages/StatisticsPage";
 import VisualizationDashboard from "./pages/VisualizationDashboard";
 import ChatDashboard from "./pages/ChatDashboard";
 import AuthPage from "./pages/AuthPage";
@@ -35,7 +34,6 @@ function App() {
             <Route index element={<Navigate to="analyze" replace />} />
             <Route path="analyze" element={<AnalyzePage />} />
             <Route path="repair" element={<RepairPage />} />
-            <Route path="statistics" element={<StatisticsPage />} />
             <Route path="viz" element={<VisualizationDashboardWrapper />} />
             <Route path="chat" element={<ChatDashboardWrapper />} />
             

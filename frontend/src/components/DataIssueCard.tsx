@@ -22,6 +22,21 @@ export const DataIssueCard: React.FC<DataIssueCardProps> = ({
 }) => {
   const impactPercentage = totalRows > 0 ? ((count / totalRows) * 100).toFixed(1) : "0.0";
 
+  // Friendly label: "Entire Dataset" → show as scope, not column
+  const isDuplicateIssue = column === "Entire Dataset";
+  const columnLabel = isDuplicateIssue ? "All Rows" : column;
+  const labelPrefix = isDuplicateIssue ? "Scope" : "Column";
+
+  // Friendly issue type display
+  const displayIssueType = (() => {
+    switch (issueType) {
+      case "Missing Values": return `${count} Missing Value${count !== 1 ? "s" : ""}`;
+      case "Duplicate Rows": return `${count} Duplicate Row${count !== 1 ? "s" : ""}`;
+      case "Incorrect Data Type": return "Wrong Data Type";
+      default: return issueType;
+    }
+  })();
+
   const getSeverityStyles = () => {
     switch (severity) {
       case "High":
@@ -30,6 +45,7 @@ export const DataIssueCard: React.FC<DataIssueCardProps> = ({
           border: "border-red-500/30",
           text: "text-red-400",
           icon: <AlertTriangle className="w-5 h-5 text-red-500" />,
+          label: "High Priority"
         };
       case "Medium":
         return {
@@ -37,6 +53,7 @@ export const DataIssueCard: React.FC<DataIssueCardProps> = ({
           border: "border-amber-500/30",
           text: "text-amber-400",
           icon: <AlertCircle className="w-5 h-5 text-amber-500" />,
+          label: "Medium Priority"
         };
       case "Low":
       default:
@@ -45,6 +62,7 @@ export const DataIssueCard: React.FC<DataIssueCardProps> = ({
           border: "border-blue-500/30",
           text: "text-blue-400",
           icon: <Info className="w-5 h-5 text-blue-500" />,
+          label: "Low Priority"
         };
     }
   };
@@ -54,46 +72,48 @@ export const DataIssueCard: React.FC<DataIssueCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`rounded-3xl p-6 border ${styles.bg} ${styles.border} flex items-start gap-4 cursor-pointer hover:border-indigo-500 transition-all group relative backdrop-blur-md`}
+      className={`rounded-2xl p-5 border ${styles.bg} ${styles.border} flex items-start gap-4 cursor-pointer hover:border-indigo-500 transition-all group relative backdrop-blur-md`}
     >
       <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
           <ArrowUpRight className="w-4 h-4 text-indigo-400" />
       </div>
       
-      <div className="mt-1">{styles.icon}</div>
+      <div className="mt-1 shrink-0">{styles.icon}</div>
       
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-2">
-          <h4 className="text-sm font-black text-slate-200 uppercase tracking-widest">
-            Column: <span className="text-indigo-400">'{column}'</span>
+          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            {labelPrefix}: <span className="text-indigo-400 font-black">{columnLabel}</span>
           </h4>
           <span
-            className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-tighter ${styles.bg} ${styles.text} border ${styles.border}`}
+            className={`text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${styles.bg} ${styles.text} border ${styles.border}`}
           >
-            {severity} Impact
+            {styles.label}
           </span>
         </div>
         
-        <div className="flex items-baseline gap-2 mb-3">
-            <p className="text-lg font-black text-white italic">{issueType}</p>
-            <span className="text-xs font-bold text-slate-500">[{count} Records]</span>
-        </div>
+        <p className="text-base font-bold text-white mb-2">{displayIssueType}</p>
 
-        <div className="flex items-center gap-4 mb-4">
-            <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
+        {/* Impact bar */}
+        <div className="flex items-center gap-3 mb-3">
+            <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
                 <div 
-                    className={`h-full ${styles.bg.replace('/10', '')} transition-all duration-1000`} 
-                    style={{ width: `${impactPercentage}%` }}
+                    className={`h-full rounded-full ${severity === "High" ? "bg-red-500" : severity === "Medium" ? "bg-amber-500" : "bg-blue-500"} transition-all duration-1000`} 
+                    style={{ width: `${Math.min(Number(impactPercentage), 100)}%` }}
                 />
             </div>
-            <span className={`text-xs font-black ${styles.text} italic`}>{impactPercentage}% Impact</span>
+            <span className={`text-xs font-bold ${styles.text}`}>{impactPercentage}%</span>
         </div>
 
         {description && (
-          <p className="text-xs text-slate-400 font-medium leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity">
+          <p className="text-xs text-slate-400 font-medium leading-relaxed">
             {description}
           </p>
         )}
+
+        <p className="text-[10px] text-indigo-400/60 font-bold mt-2 uppercase tracking-wider">
+          Click to inspect affected data →
+        </p>
       </div>
     </div>
   );

@@ -60,8 +60,6 @@ export const DatasetProvider: React.FC<DatasetProviderProps> = ({ id, children }
       setCorrelation(corrData);
       setRepairData(repairInfo);
       setQualityData(qualityInfo);
-
-      setQualityData(qualityInfo);
     } catch (err: any) {
       console.error("DatasetContext Fetch Error:", err);
       setError("Unable to initialize dataset context.");
