@@ -4,7 +4,7 @@ import numpy as np
 from unittest.mock import patch, MagicMock
 from app.services.issue_detection import calculate_health_score
 from app.services.confidence_engine import calculate_repair_confidence
-from app.services.repair_engine import get_df_stats, simulate_repair
+from app.services.repair_engine import compute_column_stats, simulate_repair
 
 class TestBackendAlgorithms(unittest.TestCase):
     def setUp(self):
@@ -34,13 +34,11 @@ class TestBackendAlgorithms(unittest.TestCase):
         perfect_score = calculate_health_score(0.0, 0.0, 0.0, 0.0)
         self.assertEqual(perfect_score, 100)
 
-    def test_df_stats(self):
-        stats = get_df_stats(self.df, "age")
+    def test_column_stats(self):
+        stats = compute_column_stats(self.df, "age")
         self.assertEqual(stats["missing"], 1)
         self.assertAlmostEqual(stats["median"], 32.5) # [25, 25, 30, 35, 40, 120] -> mid is 32.5
-        # 1 / 7 rows has missing age
-        # Wait, total cells = 7 * 4 = 28. missing = 2. missing_ratio = 2/28.
-        self.assertIsNotNone(stats["health_score"])
+        self.assertIsNotNone(stats["mean"])
 
     def test_confidence_engine(self):
         # Missing numeric -> mean/median
@@ -103,6 +101,25 @@ class TestBackendAlgorithms(unittest.TestCase):
         # NaN returns false for < and >, so the mask is false, ~mask is True. The NaN row stays!
         self.assertEqual(result["row_count_before"], 7)
         self.assertEqual(result["row_count_after"], 6)
+
+    def test_imputation_preserves_int_type(self):
+        """Verify that imputed values in discrete columns (like 'age') are cast back to integers."""
+        # Age is detected as discrete int
+        df = self.df.copy()
+        df.loc[2, 'age'] = np.nan # Ensure it's NaN
+        
+        from app.services.repair_engine import apply_strategy
+        # Mean of [25, 30, 35, 40, 25, 120] is 45.833...
+        # Repaired value should be 46
+        modified_df, applied = apply_strategy(df, 'age', 'Mean Imputation')
+        
+        self.assertTrue(applied)
+        filled_val = modified_df.loc[2, 'age']
+        
+        # Should be 46 (rounded 45.833)
+        self.assertEqual(filled_val, 46)
+        # Should be nullable integer type (Int64)
+        self.assertTrue(pd.api.types.is_integer_dtype(modified_df['age']))
 
 if __name__ == '__main__':
     unittest.main()

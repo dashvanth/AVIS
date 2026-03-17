@@ -1,326 +1,382 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Wrench, Stethoscope, Activity, Target, AlertCircle, ShieldAlert, ChevronDown } from "lucide-react";
+import {
+  Wrench,
+  AlertTriangle,
+  Download,
+  Eye,
+  CheckCircle,
+  ArrowRight,
+  ChevronDown,
+  X,
+  Loader2,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import * as api from "../services/api";
 import { useDatasetContext } from "../context/DatasetContext";
-import { RepairSuggestionCard } from "../components/RepairSuggestionCard";
-import { RepairSimulationPanel, type SimulationData } from "../components/RepairSimulationPanel";
-import { RepairTracePanel, type RepairTraceData } from "../components/RepairTracePanel";
-import { StrategyComparisonPanel, type StrategyComparisonData } from "../components/StrategyComparisonPanel";
-import { VersionHistoryPanel } from "../components/VersionHistoryPanel";
-import { BeforeAfterTable } from "../components/BeforeAfterTable";
-import { DistributionComparisonChart } from "../components/DistributionComparisonChart";
+
+/* ─── Types ─── */
+interface ChangedRow {
+  row_index: number;
+  column: string;
+  before: any;
+  after: any;
+}
+
+interface MetricsDelta {
+  missing_before: number; missing_after: number;
+  mean_before: number | null; mean_after: number | null;
+  median_before: number | null; median_after: number | null;
+  std_before: number | null; std_after: number | null;
+  skew_before: number | null; skew_after: number | null;
+}
+
+interface SimResult {
+  column: string;
+  strategy: string;
+  changed_rows: ChangedRow[];
+  rows_modified: number;
+  metrics_delta: MetricsDelta;
+  health_score_before: number;
+  health_score_after: number;
+  row_count_before: number;
+  row_count_after: number;
+}
+
+/* ═══════════════════════════════════════ */
+/*           REPAIR PAGE                  */
+/* ═══════════════════════════════════════ */
 
 const RepairPage: React.FC = () => {
-  const { 
-    datasetId, 
-    loading, 
-    error, 
-    preview, 
-    repairData, 
-    refreshData 
-  } = useDatasetContext();
-  
-  const navigate = useNavigate();
+  const { datasetId, loading, error, preview, repairData } = useDatasetContext();
 
-  const [submitting, setSubmitting] = useState(false);
-  const [activeSimulation, setActiveSimulation] = useState<SimulationData | null>(null);
-  const [activeTrace, setActiveTrace] = useState<RepairTraceData | null>(null);
-  const [compareOpen, setCompareOpen] = useState(false);
-  const [compareData, setCompareData] = useState<StrategyComparisonData | null>(null);
-  const [visibleRecommendations, setVisibleRecommendations] = useState(2);
+  const [busy, setBusy] = useState(false);
+  const [simulation, setSimulation] = useState<SimResult | null>(null);
+  const [visibleRows, setVisibleRows] = useState(5);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const handlePreviewFix = async (column: string, strategy: string) => {
+  /* ── Preview a fix ── */
+  const handlePreview = async (column: string, strategy: string) => {
     if (!datasetId) return;
-    setSubmitting(true);
+    setBusy(true);
+    setSimulation(null);
+    setSuccessMsg(null);
+    setVisibleRows(5);
     try {
-       const [result, traceResult] = await Promise.all([
-          api.simulateRepair(datasetId, column, strategy),
-          api.getRepairTrace(datasetId, column, strategy)
-       ]);
-       setActiveSimulation(result);
-       setActiveTrace(traceResult);
-       
-       // Smooth scroll to simulation results
-       setTimeout(() => {
-         document.getElementById('simulation-engine')?.scrollIntoView({ behavior: 'smooth' });
-       }, 100);
+      const result = await api.simulateRepair(datasetId, column, strategy);
+      setSimulation(result);
+      setTimeout(() => {
+        document.getElementById("preview-section")?.scrollIntoView({ behavior: "smooth" });
+      }, 150);
     } catch (e: any) {
-       console.error("Preview Fix Error:", e);
-       alert("Failed to simulate repair strategy.");
+      console.error("Preview failed:", e);
     } finally {
-       setSubmitting(false);
+      setBusy(false);
     }
   };
 
-  const handleCompareStrategies = async (column: string) => {
+  /* ── Apply repair & auto-download ── */
+  const handleApplyAndDownload = async (column: string, strategy: string) => {
     if (!datasetId) return;
-    setSubmitting(true);
+    setBusy(true);
+    setSuccessMsg(null);
     try {
-      const result = await api.compareStrategies(datasetId, column);
-      setCompareData(result);
-      setCompareOpen(true);
-    } catch (e: any) {
-      console.error("Comparison Error:", e);
-      alert("Failed to compare strategies.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+      const res = await api.applyRepair(datasetId, column, strategy);
+      const newId = res.new_dataset_id;
 
-  const handleApplyFinal = async (column?: string, strategy?: string) => {
-    const targetCol = column || activeSimulation?.column;
-    const targetStrat = strategy || activeSimulation?.strategy;
-    
-    if (!datasetId || !targetCol || !targetStrat) return;
-    
-    setSubmitting(true);
-    try {
-      const result = await api.applyRepair(datasetId, targetCol, targetStrat);
-      setActiveSimulation(null);
-      // After repair, navigate to the NEW dataset analyze page
-      navigate(`/dashboard/${result.new_dataset_id}/analyze`);
+      // Build a clean filename
+      const originalName = preview?.filename || "dataset.csv";
+      const ext = originalName.split(".").pop() || "csv";
+      const base = originalName.replace(`.${ext}`, "");
+      const newFileName = `${base}_repaired.${ext}`;
+
+      // Trigger browser download
+      const downloadUrl = api.getDownloadUrl(newId, "data", "prepared");
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = newFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setSuccessMsg(`Repair applied successfully! ${res.rows_modified ?? 0} rows were modified. Your cleaned file "${newFileName}" is downloading now.`);
+      setSimulation(null);
     } catch (err: any) {
-      console.error("Apply Fix Error:", err);
-      alert("Failed to apply repair strategy physically.");
+      console.error("Apply failed:", err);
+      setSuccessMsg("Something went wrong while applying the repair. Please try again.");
     } finally {
-      setSubmitting(false);
+      setBusy(false);
     }
   };
 
+  /* ── Guards ── */
   if (loading) return null;
   if (error || !preview || !repairData) return null;
 
-  const allRecommendations = repairData.recommendations || [];
-  const allIssues = repairData.issues || [];
+  const issues = repairData.issues || [];
+  const recommendations = repairData.recommendations || [];
+  const totalMissing = issues
+    .filter((i: any) => i.issue === "Missing Values")
+    .reduce((a: number, b: any) => a + (b.count || 0), 0);
+  const totalDuplicates = issues.find((i: any) => i.issue === "Duplicate Rows")?.count || 0;
+  const affectedCols = new Set(issues.map((i: any) => i.column)).size;
 
   return (
-    <div className="py-8 space-y-16 transition-all selection:bg-indigo-500/30">
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-16">
-        
-        {/* SECTION 1: REPAIR CONTEXT SUMMARY */}
-        <section className="bg-slate-900/40 border border-white/5 p-10 rounded-[3rem] backdrop-blur-3xl relative overflow-hidden">
-           <div className="absolute top-0 right-0 p-10 opacity-5">
-              <ShieldAlert className="w-48 h-48" />
-           </div>
-           <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-6">
-                <Target className="w-6 h-6 text-indigo-400" />
-                <h2 className="text-sm font-black text-slate-500 uppercase tracking-[0.4em]">Section 01: Audit Context</h2>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-black text-slate-500 uppercase">Total Detected Vulnerabilities</span>
-                  <p className="text-3xl font-black text-white italic">{allIssues.length}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-black text-slate-500 uppercase">Missing Data Saturation</span>
-                  <p className="text-3xl font-black text-white italic">
-                    {allIssues.filter((i:any) => i.issue.toLowerCase().includes('missing')).reduce((a:any,b:any) => a + b.count, 0)} Cells
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-black text-slate-500 uppercase">Redundancy Profile</span>
-                  <p className="text-3xl font-black text-white italic">
-                    {allIssues.find((i:any) => i.issue.toLowerCase().includes('duplicate'))?.count || 0} Records
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-black text-slate-500 uppercase">Compromised Attributes</span>
-                  <p className="text-3xl font-black text-indigo-400 italic">
-                    {new Set(allIssues.map((i:any) => i.column)).size} Columns
-                  </p>
-                </div>
-              </div>
-           </div>
+    <div className="py-8 space-y-10">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10">
+
+        {/* ════════════════════════════════════════ */}
+        {/* SECTION 1 — REPAIR SUMMARY              */}
+        {/* ════════════════════════════════════════ */}
+        <section className="bg-slate-900/50 border border-white/5 p-8 rounded-2xl">
+          <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-widest mb-5">
+            <AlertTriangle className="w-4 h-4" /> Issues Found in Your Dataset
+          </div>
+          <div className="flex flex-wrap gap-10">
+            <StatBox label="Missing Values" value={totalMissing} />
+            <StatBox label="Duplicate Rows" value={totalDuplicates} />
+            <StatBox label="Affected Columns" value={affectedCols} color="text-indigo-400" />
+            <StatBox label="Total Issues" value={issues.length} />
+          </div>
         </section>
 
-        {/* SECTION 2: REPAIR RECOMMENDATIONS */}
+        {/* ════════════════════════════════════════ */}
+        {/* SECTION 2 — RECOMMENDED FIXES            */}
+        {/* ════════════════════════════════════════ */}
         <section>
-          <div className="flex items-center gap-3 border-b border-indigo-500/20 pb-6 mb-8">
-            <Wrench className="w-7 h-7 text-indigo-400" />
-            <div className="flex-1">
-              <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Recommended Fixes</h2>
-              <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Algorithmic selection based on structural diagnostics</p>
-            </div>
+          <div className="flex items-center gap-3 border-b border-indigo-500/20 pb-4 mb-6">
+            <Wrench className="w-5 h-5 text-indigo-400" />
+            <h2 className="text-xl font-bold text-white">Recommended Fixes</h2>
           </div>
-          
-          {allRecommendations.length > 0 ? (
-            <div className="space-y-8">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {allRecommendations.slice(0, visibleRecommendations).map((rec: any, idx: number) => (
-                  <RepairSuggestionCard 
-                    key={idx}
-                    column={rec.column}
-                    issue={rec.issue}
-                    confidenceScore={rec.confidence_score}
-                    recommendedStrategy={rec.recommended_strategy}
-                    explanation={rec.explanation}
-                    isLoading={submitting}
-                    impactPercentage={((allIssues.find((i:any) => i.column === rec.column && i.issue === rec.issue)?.count || 0) / preview.row_count * 100).toFixed(1)}
-                    onPreview={() => handlePreviewFix(rec.column, rec.recommended_strategy)}
-                    onApply={() => handleApplyFinal(rec.column, rec.recommended_strategy)}
-                  />
-                ))}
-              </div>
 
-              {allRecommendations.length > visibleRecommendations && (
-                <div className="flex justify-center pt-4">
-                   <button 
-                      onClick={() => setVisibleRecommendations(prev => prev + 2)}
-                      className="group flex flex-col items-center gap-3 transition-all"
-                   >
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] group-hover:text-indigo-400 transition-colors">
-                        Expand Repair Protocols ({allRecommendations.length - visibleRecommendations} Remaining)
-                      </span>
-                      <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center group-hover:border-indigo-500/50 group-hover:bg-indigo-500/10 transition-all">
-                         <ChevronDown className="w-5 h-5 text-slate-500 group-hover:text-indigo-400 group-hover:translate-y-0.5 transition-all" />
+          {recommendations.length > 0 ? (
+            <div className="space-y-3">
+              {recommendations.map((rec: any, idx: number) => {
+                const count = issues.find(
+                  (i: any) => i.column === rec.column && i.issue === rec.issue
+                )?.count || 0;
+
+                return (
+                  <div key={idx} className="bg-slate-900/40 border border-white/5 rounded-xl p-5 hover:border-indigo-500/20 transition-all">
+                    <div className="flex flex-col md:flex-row md:items-center gap-4">
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-slate-300">
+                          <span className="text-indigo-400 font-bold">{rec.column === "Entire Dataset" ? "All Rows" : rec.column}</span>
+                          {" — "}
+                          <span className="text-white font-semibold">{rec.issue}</span>
+                          {" "}({count} row{count !== 1 ? "s" : ""})
+                          {" → Fix: "}
+                          <span className="text-emerald-400 font-bold">{rec.recommended_strategy}</span>
+                        </p>
                       </div>
-                   </button>
-                </div>
-              )}
+
+                      {/* Buttons */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => handlePreview(rec.column, rec.recommended_strategy)}
+                          disabled={busy}
+                          className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-indigo-500 hover:text-white transition-all disabled:opacity-50"
+                        >
+                          {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
+                          Preview
+                        </button>
+                        <button
+                          onClick={() => handleApplyAndDownload(rec.column, rec.recommended_strategy)}
+                          disabled={busy}
+                          className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-emerald-500 hover:text-white transition-all disabled:opacity-50"
+                        >
+                          {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                          Apply & Download
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : (
-            <div className="p-16 bg-emerald-500/5 border border-emerald-500/10 rounded-[3rem] text-center backdrop-blur-md">
-              <h3 className="text-2xl font-black text-white italic mb-2 uppercase tracking-tighter">Workspace Integrity Confirmed</h3>
-              <p className="text-slate-400 font-medium">No automated repair protocols recommended for this dataset version.</p>
+            <div className="p-10 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-center">
+              <CheckCircle className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
+              <h3 className="text-lg font-bold text-white">No Repairs Needed</h3>
+              <p className="text-sm text-emerald-200/70 mt-1">This dataset looks clean — no issues detected.</p>
             </div>
           )}
         </section>
 
-        {/* SECTION 3: SIMULATION ENGINE (DETERMINISTIC FORENSICS) */}
+        {/* ════════════════════════════════════════ */}
+        {/* SECTION 3 — PREVIEW (Before vs After)    */}
+        {/* ════════════════════════════════════════ */}
         <AnimatePresence>
-          {activeSimulation && (
-             <motion.section 
-               id="simulation-engine"
-               initial={{ opacity: 0, scale: 0.95 }}
-               animate={{ opacity: 1, scale: 1 }}
-               exit={{ opacity: 0, scale: 0.95 }}
-               className="space-y-10"
-             >
-                <div className="flex items-center gap-3 border-b border-amber-500/20 pb-6 mb-8">
-                  <Activity className="w-7 h-7 text-amber-500" />
-                  <div className="flex-1">
-                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Forensic Simulation Engine</h2>
-                    <p className="text-xs text-amber-500 font-bold uppercase tracking-widest mt-1">Impact Analysis: {activeSimulation.strategy} on '{activeSimulation.column}'</p>
+          {simulation && (
+            <motion.section
+              id="preview-section"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 16 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center justify-between border-b border-amber-500/20 pb-4">
+                <div className="flex items-center gap-3">
+                  <Eye className="w-5 h-5 text-amber-500" />
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Preview: What Will Change</h2>
+                    <p className="text-xs text-amber-400 font-bold mt-0.5">
+                      {simulation.strategy} on "{simulation.column}"
+                    </p>
                   </div>
-                  <button 
-                    onClick={() => setActiveSimulation(null)}
-                    className="text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest bg-white/5 px-4 py-2 rounded-xl transition-all"
-                  >
-                    Clear Results
-                  </button>
                 </div>
+                <button onClick={() => setSimulation(null)} className="p-2 rounded-lg hover:bg-white/5">
+                  <X className="w-4 h-4 text-slate-500 hover:text-white" />
+                </button>
+              </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                   {/* Summary Metrics Table */}
-                   <div className="lg:col-span-5 space-y-6">
-                      <div className="bg-slate-900 border border-white/5 rounded-[3rem] p-10 shadow-2xl">
-                         <h4 className="text-xs font-black text-white uppercase tracking-[0.3em] mb-8">Statistical Delta Analysis</h4>
-                         <div className="space-y-6">
-                            <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                               <span className="text-[10px] font-black text-slate-500 uppercase">Metric Parameter</span>
-                               <div className="flex gap-16 text-[10px] font-black text-slate-500 uppercase pr-4">
-                                  <span>Original</span>
-                                  <span>Repaired</span>
-                               </div>
-                            </div>
-                            <SimMetricRow label="Missing Records" before={activeSimulation.missing_before} after={activeSimulation.missing_after} highlight={true} />
-                            <SimMetricRow label="Mean (Average)" before={activeSimulation.mean_before?.toFixed(2) || 'N/A'} after={activeSimulation.mean_after?.toFixed(2) || 'N/A'} />
-                            <SimMetricRow label="Projected Health" before={activeSimulation.health_score_before + '%'} after={activeSimulation.health_score_after + '%'} highlight={true} />
-                            <SimMetricRow label="Information Loss" before="0.0%" after={(activeSimulation.information_loss || 0).toFixed(2) + '%'} />
-                         </div>
-                      </div>
+              {/* Part A — Changed Rows Table */}
+              {simulation.changed_rows && simulation.changed_rows.length > 0 && (
+                <div className="bg-slate-900/40 border border-white/5 rounded-xl overflow-hidden">
+                  <div className="px-5 py-3 border-b border-white/5">
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                      Rows That Will Change ({simulation.rows_modified} total)
+                    </h3>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-slate-800/60">
+                          <th className="px-5 py-2.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Row</th>
+                          <th className="px-5 py-2.5 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Column</th>
+                          <th className="px-5 py-2.5 text-left text-[10px] font-bold text-red-400 uppercase tracking-wider">Before</th>
+                          <th className="px-5 py-2.5 text-center text-slate-600"></th>
+                          <th className="px-5 py-2.5 text-left text-[10px] font-bold text-emerald-400 uppercase tracking-wider">After</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {simulation.changed_rows.slice(0, visibleRows).map((row, idx) => (
+                          <tr key={idx} className="hover:bg-indigo-500/5 transition-colors">
+                            <td className="px-5 py-2.5 text-sm font-mono text-slate-300">{row.row_index}</td>
+                            <td className="px-5 py-2.5 text-sm font-bold text-indigo-400">{row.column}</td>
+                            <td className="px-5 py-2.5 text-sm font-mono text-red-400">
+                              {row.before === null ? <span className="italic text-red-500/60">NULL</span> : String(row.before)}
+                            </td>
+                            <td className="px-5 py-2.5 text-center">
+                              <ArrowRight className="w-3.5 h-3.5 text-amber-500 mx-auto" />
+                            </td>
+                            <td className="px-5 py-2.5 text-sm font-mono font-bold text-emerald-400">
+                              {row.after === null ? <span className="italic">NULL</span> : String(row.after)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
 
-                      {activeTrace && (
-                         <div className="bg-black/20 border border-white/5 rounded-[3rem] p-10">
-                            <h4 className="text-xs font-black text-white uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
-                               <Stethoscope className="w-4 h-4 text-indigo-400" /> Algorithmic Repair Trace
-                            </h4>
-                            <RepairTracePanel trace={activeTrace} />
-                         </div>
-                      )}
-                   </div>
-
-                   {/* Distribution Comparison */}
-                   <div className="lg:col-span-7 bg-slate-900/50 border border-white/5 rounded-[3rem] p-10 min-h-[500px] flex flex-col">
-                      <div className="mb-6">
-                        <h4 className="text-xs font-black text-white uppercase tracking-[0.3em]">Distribution Shift Visualization</h4>
-                      </div>
-                      <div className="flex-1">
-                         {activeSimulation.histogram_before && activeSimulation.histogram_after && activeSimulation.histogram_bins && (
-                            <DistributionComparisonChart 
-                               histogramBefore={activeSimulation.histogram_before}
-                               histogramAfter={activeSimulation.histogram_after}
-                               bins={activeSimulation.histogram_bins}
-                               columnName={activeSimulation.column}
-                            />
-                         )}
-                      </div>
-                   </div>
+                  {/* View More */}
+                  {visibleRows < simulation.changed_rows.length && (
+                    <div className="px-5 py-3 border-t border-white/5 text-center">
+                      <button
+                        onClick={() => setVisibleRows((v) => v + 15)}
+                        className="flex items-center gap-2 mx-auto text-xs font-bold text-indigo-400 hover:text-white transition-colors"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                        View More ({simulation.changed_rows.length - visibleRows} remaining)
+                      </button>
+                    </div>
+                  )}
                 </div>
+              )}
 
-                {/* SECTION 4: BEFORE VS AFTER DATA (TRANSFORMATION PROOF) */}
-                <BeforeAfterTable 
-                  originalRows={preview.full_data}
-                  transformedRows={activeSimulation.transformed_rows || preview.full_data}
-                  column={activeSimulation.column}
-                />
-
-                <div className="flex justify-center pt-8">
-                   <button 
-                      onClick={() => handleApplyFinal()}
-                      disabled={submitting}
-                      className="px-20 py-6 bg-indigo-500 hover:bg-indigo-600 text-white font-black text-sm uppercase tracking-[0.4em] rounded-[2rem] shadow-2xl shadow-indigo-500/40 transition-all active:scale-95"
-                   >
-                      {submitting ? "Finalizing Transformation..." : "Confirm & Commit Repair"}
-                   </button>
+              {/* Part B — Stats Change */}
+              {simulation.metrics_delta && (
+                <div className="bg-slate-900/40 border border-white/5 rounded-xl p-5">
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-4">
+                    How Stats Will Change
+                  </h3>
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        <th className="text-left px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Metric</th>
+                        <th className="text-right px-3 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Before</th>
+                        <th className="text-right px-3 py-2 text-[10px] font-bold text-emerald-500 uppercase tracking-wider">After</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      <MetricRow label="Missing Values" before={simulation.metrics_delta.missing_before} after={simulation.metrics_delta.missing_after} highlight />
+                      <MetricRow label="Mean (Average)" before={simulation.metrics_delta.mean_before} after={simulation.metrics_delta.mean_after} />
+                      <MetricRow label="Median (Middle)" before={simulation.metrics_delta.median_before} after={simulation.metrics_delta.median_after} />
+                      <MetricRow label="Std Dev (Spread)" before={simulation.metrics_delta.std_before} after={simulation.metrics_delta.std_after} />
+                      <MetricRow label="Skewness (Tilt)" before={simulation.metrics_delta.skew_before} after={simulation.metrics_delta.skew_after} />
+                      <MetricRow label="Total Rows" before={simulation.row_count_before} after={simulation.row_count_after} />
+                      <MetricRow label="Health Score" before={`${simulation.health_score_before}%`} after={`${simulation.health_score_after}%`} highlight />
+                    </tbody>
+                  </table>
                 </div>
-             </motion.section>
+              )}
+
+              {/* Apply Button */}
+              <div className="flex justify-center pt-2">
+                <button
+                  onClick={() => handleApplyAndDownload(simulation.column, simulation.strategy)}
+                  disabled={busy}
+                  className="flex items-center gap-3 px-10 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm uppercase tracking-wider rounded-xl shadow-xl shadow-emerald-500/25 transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                  {busy ? "Applying..." : "Apply Repair & Download"}
+                </button>
+              </div>
+            </motion.section>
           )}
         </AnimatePresence>
 
-        {/* SECTION 5: VERSION HISTORY */}
-        <section>
-           <div className="flex items-center gap-3 border-b border-indigo-500/20 pb-6 mb-8">
-             <Activity className="w-7 h-7 text-indigo-400" />
-             <div className="flex-1">
-               <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Dataset Lineage</h2>
-               <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Version control and restoration portal</p>
-             </div>
-           </div>
-           <div className="max-w-4xl">
-              <VersionHistoryPanel datasetId={Number(datasetId)} currentFilename={preview.filename} />
-           </div>
-        </section>
+        {/* ════════════════════════════════════════ */}
+        {/* SECTION 4 — SUCCESS / ERROR MESSAGE      */}
+        {/* ════════════════════════════════════════ */}
+        <AnimatePresence>
+          {successMsg && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className={`p-5 rounded-xl border text-center text-sm font-semibold ${
+                successMsg.includes("successfully")
+                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                  : "bg-red-500/10 border-red-500/30 text-red-400"
+              }`}
+            >
+              {successMsg}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
       </motion.div>
     </div>
   );
 };
 
-/* Helper Component for Simulation Metrics */
-const SimMetricRow = ({ label, before, after, highlight = false }: { label: string, before: any, after: any, highlight?: boolean }) => {
-  const isChanged = before !== after;
+/* ─── Stat Box ─── */
+const StatBox = ({ label, value, color = "text-white" }: { label: string; value: number; color?: string }) => (
+  <div>
+    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{label}</p>
+    <p className={`text-3xl font-black ${color}`}>{value}</p>
+  </div>
+);
+
+/* ─── Metric Row ─── */
+const MetricRow = ({ label, before, after, highlight = false }: { label: string; before: any; after: any; highlight?: boolean }) => {
+  const fmt = (v: any) => {
+    if (v === null || v === undefined) return "—";
+    if (typeof v === "number") return Number.isInteger(v) ? v.toString() : v.toFixed(2);
+    return String(v);
+  };
+  const changed = fmt(before) !== fmt(after);
+
   return (
-    <div className="flex items-center justify-between py-2 group">
-      <span className="text-xs font-medium text-slate-400 group-hover:text-slate-200 transition-colors">{label}</span>
-      <div className="flex items-center gap-8">
-        <span className="text-sm font-mono text-slate-500">{before}</span>
-        <ArrowRight className={`w-4 h-4 ${isChanged ? "text-amber-500 animate-pulse" : "text-slate-700 opacity-20"}`} />
-        <span className={`text-sm font-mono font-black ${isChanged ? (highlight ? "text-emerald-400" : "text-amber-400") : "text-slate-300"}`}>
-          {after}
-        </span>
-      </div>
-    </div>
+    <tr className="group hover:bg-indigo-500/5 transition-colors">
+      <td className="px-3 py-2.5 text-xs text-slate-400 group-hover:text-white transition-colors">{label}</td>
+      <td className="px-3 py-2.5 text-right text-sm font-mono text-slate-500">{fmt(before)}</td>
+      <td className={`px-3 py-2.5 text-right text-sm font-mono font-bold ${changed ? (highlight ? "text-emerald-400" : "text-amber-400") : "text-slate-300"}`}>
+        {fmt(after)}
+      </td>
+    </tr>
   );
 };
-
-const ArrowRight = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-  </svg>
-);
 
 export default RepairPage;

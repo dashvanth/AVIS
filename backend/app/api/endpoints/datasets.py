@@ -98,6 +98,16 @@ def preview_existing_dataset(dataset_id: int, session: Session = Depends(get_ses
             except:
                 pass
 
+        # Compute dataset_explanation on-the-fly (ensures domain/purpose for old datasets)
+        stored_explanation = glass_box.get("dataset_explanation", {})
+        if stored_explanation and stored_explanation.get("domain"):
+            dataset_explanation = stored_explanation
+        else:
+            quality = calculate_quality_score(df)
+            from app.services.dataset_service import generate_ingestion_insights
+            fresh_insights = generate_ingestion_insights(df, quality, filename=dataset.filename)
+            dataset_explanation = fresh_insights.get("dataset_explanation", stored_explanation)
+
         # 5. LEGACY LAYER: Generate Insights List for the Frontend Banner
         insights_list = []
         if glass_box.get("readiness"):
@@ -131,7 +141,7 @@ def preview_existing_dataset(dataset_id: int, session: Session = Depends(get_ses
             # Glass Box Metadata (Unpacked for Frontend)
             "column_types": glass_box.get("column_types", []),
             "data_issues": glass_box.get("data_issues", []),
-            "dataset_explanation": glass_box.get("dataset_explanation"),
+            "dataset_explanation": dataset_explanation,
             "readiness": glass_box.get("readiness"),
             "score_breakdown": glass_box.get("score_breakdown", []),
             

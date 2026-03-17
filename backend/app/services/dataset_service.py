@@ -92,41 +92,48 @@ def generate_ingestion_insights(df: pd.DataFrame, quality: dict, filename: str =
     col_names_lower = [c.lower() for c in df.columns]
     col_text = " ".join(col_names_lower)
     
-    # 2. Identify Domain & Entity
+    # 2. Identify Domain, Entity & Purpose
     domain = "General"
     entity = "record"
     action = "contains"
+    purpose = "general data exploration, trend analysis, and statistical reporting"
     
     # Priority 1: Healthcare (Distinct medical terms)
     if any(x in col_text for x in ['patient', 'diagnosis', 'treatment', 'health', 'glucose', 'insulin', 'bmi', 'blood', 'hba1c', 'diabetes']):
         domain = "Healthcare"
         entity = "patient case"
         action = "documents"
+        purpose = "medical trend analysis, patient outcome prediction, and clinical decision support"
     # Priority 2: Retail & Finance (Money terms)
     elif any(x in col_text for x in ['price', 'cost', 'revenue', 'profit', 'currency', 'transaction', 'invoice']):
         domain = "Retail & Finance"
         entity = "transaction"
         action = "tracks"
+        purpose = "sales forecasting, revenue analysis, and financial trend monitoring"
     # Priority 3: Education (Must be specific)
     elif any(x in col_text for x in ['student', 'grade', 'marks', 'exam', 'semester', 'gpa']):
         domain = "Education"
         entity = "student record"
         action = "lists"
+        purpose = "academic performance analysis, grade prediction, and student progress tracking"
     # Priority 4: HR / CRM (People terms)
     elif any(x in col_text for x in ['employee', 'salary', 'job', 'department', 'hire', 'customer', 'churn']):
         domain = "Human Resources"
         entity = "personnel record"
         action = "manages"
+        purpose = "workforce analytics, salary benchmarking, and employee retention analysis"
     # Priority 5: IoT / Tech
     elif any(x in col_text for x in ['sensor', 'voltage', 'watt', 'hz', 'temperature', 'ip_address', 'latency']):
         domain = "IoT / Technology"
         entity = "sensor reading"
         action = "logs"
+        purpose = "sensor monitoring, anomaly detection, and predictive maintenance"
     # Fallback to general based on ID
     elif 'id' in col_text:
         domain = "General Business"
         entity = "entity"
         action = "catalogs"
+        purpose = "record management, pattern discovery, and reporting"
 
     # 3. Identify Key Columns (Heuristic)
     key_cols = []
@@ -148,6 +155,8 @@ def generate_ingestion_insights(df: pd.DataFrame, quality: dict, filename: str =
 
     explanation = {
         "description": description,
+        "domain": domain,
+        "purpose": purpose,
         "usage_examples": [
             f"Analyze the distribution of {highlight_cols[0] if highlight_cols else 'values'}",
             "Identify missing or incomplete records",
