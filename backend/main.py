@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -6,9 +9,6 @@ from app.api.endpoints import datasets, eda, viz, auth, insights, chat, preparat
 from contextlib import asynccontextmanager
 import time
 import logging
-
-from dotenv import load_dotenv
-load_dotenv() 
 
 from fastapi import FastAPI
 # Initialize Forensic Logging

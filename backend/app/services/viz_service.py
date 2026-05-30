@@ -76,6 +76,11 @@ def get_chart_data(dataset_id: int, x_col: str, chart_type: str, y_col: str = No
         # Remove keys with None values to keep the JSON payload clean
         trace = {k: v for k, v in trace.items() if v is not None}
 
+        # Indicate if we downsampled for performance
+        is_downsampled = False
+        if chart_type == 'scatter' and len(df) > MAX_POINTS:
+            is_downsampled = True
+
         return {
             "data": [trace],
             "layout": {
@@ -86,6 +91,10 @@ def get_chart_data(dataset_id: int, x_col: str, chart_type: str, y_col: str = No
                 "plot_bgcolor": "rgba(0,0,0,0)",
                 "font": {"family": "Inter, sans-serif", "color": "#94a3b8"},
                 "margin": {"t": 50, "b": 50, "l": 50, "r": 50}
+            },
+            "meta": {
+                "downsampled": is_downsampled,
+                "limit": MAX_POINTS
             }
         }
         

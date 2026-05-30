@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import * as api from "../services/api";
-import { useChat } from "../context/ChatContext";
 import type { PreviewData, EDASummary } from "../types";
 
 import { useDatasetContext } from "../context/DatasetContext";
@@ -34,7 +33,6 @@ interface VisualizationDashboardProps {
 }
 
 const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({ datasetId }) => {
-  const { setCurrentContext, triggerMessage } = useChat();
   const { preview, summary: edaSummary, loading: contextLoading } = useDatasetContext();
 
   // 🔹 STATE MANAGEMENT
@@ -46,14 +44,27 @@ const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({ dataset
   const [xColumn, setXColumn] = useState<string>("");
   const [yColumn, setYColumn] = useState<string>("");
   const [chartData, setChartData] = useState<any>(null);
+  const [chartMeta, setChartMeta] = useState<{ downsampled: boolean, limit: number } | null>(null);
 
   // Auto-select intelligent defaults when data arrives
   useEffect(() => {
     if (edaSummary && !xColumn) {
       const catCols = edaSummary.categorical.map(c => c.column);
       const numCols = edaSummary.numeric.map(c => c.column);
-      if (catCols.length > 0) setXColumn(catCols[0]);
-      if (numCols.length > 0) setYColumn(numCols[0]);
+      
+      // Smart Recommendation Logic
+      if (catCols.length > 0) {
+        setXColumn(catCols[0]);
+        setChartType(catCols.length < 5 ? "pie" : "bar");
+        if (numCols.length > 0) setYColumn(numCols[0]);
+      } else if (numCols.length >= 2) {
+        setXColumn(numCols[0]);
+        setYColumn(numCols[1]);
+        setChartType("scatter");
+      } else if (numCols.length === 1) {
+        setXColumn(numCols[0]);
+        setChartType("bar");
+      }
     }
   }, [edaSummary, xColumn]);
 
@@ -65,17 +76,13 @@ const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({ dataset
       try {
         // For Pie charts, Y is optional (uses counts if missing)
         // For others, Y is usually needed or defaults to count
-        const data = await api.getChartData(datasetId, xColumn, chartType, yColumn || undefined);
-        setChartData(data);
-        
-        // Sync AI Context
-        setCurrentContext({
-            chartType,
-            xAxis: xColumn,
-            yAxis: yColumn || "Count",
-            context: "Visualization Lab",
-            canExplain: true
-        });
+        const response = await api.getChartData(datasetId, xColumn, chartType, yColumn || undefined);
+        setChartData(response);
+        if (response.meta) {
+           setChartMeta(response.meta);
+        } else {
+           setChartMeta(null);
+        }
       } catch (err) {
         console.error("Render failed:", err);
       } finally {
@@ -145,7 +152,21 @@ const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({ dataset
     </div>
   );
 
-  if (error || !preview) return <div className="p-10 text-white text-center">{error}</div>;
+  if (error || !preview) return (
+     <div className="flex flex-col items-center justify-center min-h-[50vh] bg-slate-950 p-6">
+        <div className="bg-red-500/10 border border-red-500/20 p-10 rounded-3xl max-w-lg text-center backdrop-blur-xl">
+           <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-6" />
+           <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-wide">Visualization Error</h3>
+           <p className="text-slate-400 mb-8 leading-relaxed">{error || "Unable to load visual data."}</p>
+           <Link 
+              to="/app"
+              className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold transition-all"
+           >
+              Return to Dashboard
+           </Link>
+        </div>
+     </div>
+  );
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -154,8 +175,22 @@ const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({ dataset
   const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
 
   return (
-    <div className="py-12">
-      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-12">
+    <div className="py-8">
+      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
+        
+        {/* 🔹 SECTION 1: COMPARE BEFORE/AFTER REPAIR */}
+        {preview?.parent_dataset_id && (
+          <motion.div variants={itemVariants} className="flex justify-end mb-4">
+             <Link
+               to={`/dashboard/${preview.parent_dataset_id}/visualize`}
+               className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-amber-500/20 transition-all transform hover:scale-105"
+             >
+               <BarChart3 className="w-4 h-4" />
+               View Original Data (Before Repair)
+             </Link>
+          </motion.div>
+        )}
+
         {/* 🔹 SECTION 2: EDUCATION */}
         <motion.section variants={itemVariants}>
           <div className="p-6 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl flex items-start gap-4">
@@ -199,7 +234,7 @@ const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({ dataset
               <div className="mt-4 p-3 bg-white/5 rounded-xl border border-white/5">
                 <p className="text-[10px] text-slate-400 italic">
                   <Lightbulb className="w-3 h-3 inline mr-1 text-amber-400" />
-                  Based on EDA: Categorical charts (Bar/Pie) are recommended for this dataset.
+                  Auto-recommended based on your dataset structure.
                 </p>
               </div>
             </motion.section>
@@ -276,17 +311,6 @@ const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({ dataset
                 </div>
               ) : chartData ? (
                 <div className="w-full h-full relative z-10">
-                  {/* AI Interaction Overlay */}
-                  <div className="absolute top-4 right-4 z-20">
-                      <button 
-                        onClick={() => triggerMessage(`Explain what this ${chartType} chart shows for ${xColumn}${yColumn ? ' and ' + yColumn : ''}. What are the key patterns?`)}
-                        className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full font-bold text-sm shadow-xl shadow-indigo-500/30 transition-all transform hover:scale-105"
-                      >
-                        <MessageSquarePlus className="w-4 h-4" />
-                        Ask AI to Explain Chart
-                      </button>
-                  </div>
-
                   <Plot
                     data={chartData.data}
                     layout={{
@@ -314,54 +338,7 @@ const VisualizationDashboard: React.FC<VisualizationDashboardProps> = ({ dataset
               )}
             </motion.section>
 
-            {/* 🔹 SECTION 8 & 9: EDUCATIONAL LAYERS (SPLIT) */}
-            <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-              {/* Helps With */}
-              <div className="p-6 bg-slate-900/40 border border-white/5 rounded-2xl">
-                <h4 className="text-xs font-black text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                  <Lightbulb className="w-4 h-4" /> This Chart Helps You
-                </h4>
-                <ul className="space-y-2 text-sm text-slate-400">
-                  {chartType === "bar" && <><li>Compare group sizes easily.</li><li>Spot the most frequent categories.</li></>}
-                  {chartType === "pie" && <><li>See how parts make up the hole.</li><li>Visualize dominance of a few groups.</li></>}
-                  {chartType === "line" && <><li>Track trends over time.</li><li>Spot sudden increases or drops.</li></>}
-                  {chartType === "scatter" && <><li>Check if two values are related.</li><li>Identify outliers (unusual points).</li></>}
-                </ul>
-              </div>
-
-              {/* Does Not Help With (Limits) */}
-              <div className="p-6 bg-slate-900/40 border border-white/5 rounded-2xl">
-                <h4 className="text-xs font-black text-amber-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                  <ShieldAlert className="w-4 h-4" /> Does NOT Help With
-                </h4>
-                <ul className="space-y-2 text-sm text-slate-400">
-                  <li>❌ Predicting future values (Forecasting).</li>
-                  <li>❌ Proving cause and effect relationships.</li>
-                </ul>
-              </div>
-
-            </motion.section>
-
-            {/* 🔹 SECTION 10: NEXT ACTIONS */}
-            <motion.section variants={itemVariants}>
-              <div className="p-6 bg-slate-900/40 border border-white/5 rounded-2xl flex flex-col items-center justify-center gap-4 text-center">
-                <h4 className="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2">
-                  <ArrowRight className="w-4 h-4" /> Analysis Complete?
-                </h4>
-                <p className="text-sm text-slate-500 max-w-lg">
-                  You have visualized the shapes of your data. Now, let the <strong>Insights Engine</strong> explain what these patterns mean in plain English.
-                </p>
-                <div className="flex gap-4 w-full justify-center">
-                  <Link to={`/dashboard/${datasetId}/chat`} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/20 transition-all transform hover:scale-105">
-                    Get AI Insights
-                  </Link>
-                  <Link to={`/dashboard/${datasetId}/chat`} className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold text-sm border border-white/10 transition-all">
-                    Ask Chat about this
-                  </Link>
-                </div>
-              </div>
-            </motion.section>
+            {/* (Removed Help/Does Not Help sections per request) */}
 
           </div>
         </div>

@@ -13,7 +13,6 @@ import DashboardHome from "./pages/DashboardHome";
 import AnalyzePage from "./pages/AnalyzePage";
 import RepairPage from "./pages/RepairPage";
 import VisualizationDashboard from "./pages/VisualizationDashboard";
-import ChatDashboard from "./pages/ChatDashboard";
 import AuthPage from "./pages/AuthPage";
 
 function App() {
@@ -35,7 +34,6 @@ function App() {
             <Route path="analyze" element={<AnalyzePage />} />
             <Route path="repair" element={<RepairPage />} />
             <Route path="viz" element={<VisualizationDashboardWrapper />} />
-            <Route path="chat" element={<ChatDashboardWrapper />} />
             
             {/* Legacy Redirects for stability */}
             <Route path="overview" element={<Navigate to="../analyze" replace />} />
@@ -59,10 +57,6 @@ function App() {
 const VisualizationDashboardWrapper = () => {
   const { id } = useParams<{ id: string }>();
   return <VisualizationDashboard datasetId={Number(id)} />;
-};
-
-const ChatDashboardWrapper = () => {
-  return <ChatDashboard />;
 };
 
 export default App;

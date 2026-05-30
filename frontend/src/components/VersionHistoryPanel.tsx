@@ -105,7 +105,9 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({ datase
                              <span className="text-white font-medium">{item.description}</span>
                              {isActive && <span className="ml-2 text-[10px] uppercase font-bold tracking-wider text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded">Active</span>}
                          </div>
-                         <span className="text-xs text-slate-500 mt-1 font-mono">{item.timestamp}</span>
+                         <span className="text-xs text-slate-500 mt-1 font-mono">
+                           {new Date(item.timestamp).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                         </span>
                       </div>
                       
                       {!isActive && (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ChevronRight,
   Layout,
@@ -14,7 +14,21 @@ import { TypewriterText } from "../components/TypewriterText";
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  // Handle hash scrolling from other pages
+  useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.replace("#", "");
+      const element = document.getElementById(id);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      }
+    }
+  }, [location]);
 
   // Lightweight Cursor Glow (Hardware-Friendly)
   useEffect(() => {
@@ -50,16 +64,16 @@ const LandingPage: React.FC = () => {
           <div className="space-y-8 text-center lg:text-left">
             <div className="inline-flex items-center px-3 py-1 rounded-full bg-avis-accent-indigo/10 border border-avis-accent-indigo/20 text-avis-accent-indigo text-[10px] font-bold tracking-widest uppercase mb-4">
               <span className="w-1.5 h-1.5 rounded-full bg-avis-accent-indigo mr-2 animate-pulse"></span>
-              A.V.I.S. Smart Discovery
+              Simulation-Based Data Engine
             </div>
             <h1 className="text-5xl lg:text-8xl font-black leading-[0.9] tracking-tighter">
-              Making Data <br />
+              Intelligent <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-avis-accent-indigo to-avis-accent-cyan min-h-[1.2em] inline-block">
                 <TypewriterText
                   words={[
-                    "Easy to Understand",
-                    "Clear for Everyone",
-                    "Beginner Friendly",
+                    "Data Simulation",
+                    "Repair Strategies",
+                    "Quality Diagnostics",
                   ]}
                   typingSpeed={80}
                   deletingSpeed={40}
@@ -68,14 +82,14 @@ const LandingPage: React.FC = () => {
               </span>
             </h1>
             <p className="text-lg text-avis-text-secondary leading-relaxed max-w-xl mx-auto lg:mx-0 opacity-80">
-              Stop fighting with complicated spreadsheets. A.V.I.S. explains
-              your data simply, shows you exactly what was cleaned, and builds
-              your charts automatically.
+              A comprehensive data quality analysis and repair system. Evaluate
+              the impact of repair strategies transparently before applying them
+              to your dataset.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
               <button
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate("/app")}
                 className="w-full sm:w-auto px-10 py-4 bg-avis-accent-indigo hover:bg-indigo-500 text-white rounded-2xl font-bold text-lg transition-all shadow-xl hover:shadow-indigo-500/20 transform hover:-translate-y-1 flex items-center justify-center gap-2"
               >
                 <MousePointer2 className="w-5 h-5" />
@@ -95,7 +109,7 @@ const LandingPage: React.FC = () => {
                 <div className="space-y-2">
                   <div className="h-2 w-24 bg-avis-border rounded-full opacity-50"></div>
                   <div className="text-[9px] font-mono text-avis-accent-cyan uppercase tracking-widest">
-                    Transparency_Engine_Live
+                    Simulation_Engine_Live
                   </div>
                 </div>
                 <div className="h-10 w-10 bg-avis-accent-success/10 rounded-2xl flex items-center justify-center text-avis-accent-success">
@@ -105,13 +119,13 @@ const LandingPage: React.FC = () => {
               <div className="space-y-4 font-mono text-[10px] leading-relaxed">
                 <div className="p-4 bg-black/30 rounded-2xl border border-avis-border/30 text-avis-text-secondary">
                   <p className="text-avis-accent-indigo mb-1">
-                    [AUDIT] Removed 5 empty rows
+                    [SIMULATE] Imputing mean for 'Age'
                   </p>
                   <p className="text-avis-accent-success">
-                    [AUDIT] Fixed 12 missing values
+                    [COMPUTE] Analyzing statistical variance
                   </p>
                   <p className="text-avis-accent-cyan">
-                    [AUDIT] Verified 8 data columns
+                    [VERSION] Created Dataset v2 snapshot
                   </p>
                 </div>
                 <div className="h-24 w-full bg-avis-primary/50 rounded-2xl border border-avis-border/20 relative overflow-hidden">
@@ -142,10 +156,10 @@ const LandingPage: React.FC = () => {
                 </div>
                 <div>
                   <div className="text-white font-bold text-sm leading-none">
-                    Honest Logic
+                    Deterministic Engine
                   </div>
                   <div className="text-avis-text-secondary text-[10px] mt-1 uppercase tracking-tighter">
-                    No Secrets Inside
+                    Traceable Quality Metrics
                   </div>
                 </div>
               </div>
@@ -164,12 +178,13 @@ const LandingPage: React.FC = () => {
             The Vision
           </p>
           <h2 className="text-3xl font-black text-white mb-6">
-            Built for Learning
+            Research-Driven Data Governance
           </h2>
           <p className="max-w-2xl mx-auto text-avis-text-secondary leading-relaxed opacity-80">
-            A.V.I.S. is a personal project designed to make data science
-            accessible. Instead of hidden algorithms, we provide a guided
-            experience that teaches you "What, Why, and How" at every stage.
+            A.V.I.S. is designed to make data science processes transparent.
+            Instead of destructive black-box algorithms, we provide an
+            explainable, simulation-first experience that teaches you the
+            impact of every data transformation.
           </p>
         </div>
       </section>
@@ -180,30 +195,31 @@ const LandingPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
             <FeatureCard
               icon={<FileSpreadsheet className="w-7 h-7" />}
-              title="Upload Anything"
+              title="Diagnostic Engine"
               features={[
-                "Excel & CSV Ready",
-                "Instant Data Summary",
+                "Traceable Quality Metrics",
+                "Column-Level Issue Detection",
+                "Expandable Data Diagnostics",
               ]}
               color="indigo"
             />
             <FeatureCard
-              icon={<Binary className="w-7 h-7" />}
-              title="Data Transparency"
+              icon={<Microscope className="w-7 h-7" />}
+              title="Simulator Core"
               features={[
-                "See Every Change",
-                "Detailed Processing Logs",
-                "Transparent Audit Trail",
+                "Strategy Comparison (Mean, KNN)",
+                "Pre-application Impact Preview",
+                "Statistical Distortion Metrics",
               ]}
               color="cyan"
             />
             <FeatureCard
-              icon={<Layout className="w-7 h-7" />}
-              title="Intelligent Visuals"
+              icon={<Binary className="w-7 h-7" />}
+              title="Version Control"
               features={[
-                "Auto-Dashboards",
-                "Smart Chart Selection",
-                "Simple Explanations",
+                "Dataset Evolution Lineage",
+                "Undo/Restore Capabilities",
+                "Non-Destructive Workflows",
               ]}
               color="success"
             />
@@ -219,7 +235,7 @@ const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-avis-text-primary">
-              How A.V.I.S. Works
+              The Analytical Pipeline
             </h2>
           </div>
 
@@ -230,12 +246,11 @@ const LandingPage: React.FC = () => {
               {
                 step: "01",
                 title: "Upload",
-                desc: "Secure Multi-Format Storage",
+                desc: "Dataset Ingestion & Profiling",
               },
-              { step: "02", title: "Audit", desc: "See Every Single Change" },
-              { step: "03", title: "Check", desc: "Smart System Processing" },
-              { step: "04", title: "View", desc: "See Your Data Visually" },
-              { step: "05", title: "Learn", desc: "Understand Your Insights" },
+              { step: "02", title: "Analyze", desc: "Understanding & Diagnostics" },
+              { step: "03", title: "Repair", desc: "Simulation & Application" },
+              { step: "04", title: "Visualize", desc: "Interactive Exploration" },
             ].map((item, idx) => (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}

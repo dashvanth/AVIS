@@ -23,7 +23,6 @@ import {
 import { motion } from "framer-motion";
 
 import * as api from "../services/api";
-import { useChat } from "../context/ChatContext";
 import type {
   EDASummary,
   CorrelationData,
@@ -305,7 +304,13 @@ const AnalysisLab: React.FC = () => {
         <div className="bg-red-500/10 border border-red-500/20 p-10 rounded-3xl max-w-lg text-center backdrop-blur-xl">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-6" />
           <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-wide">Workspace Error</h3>
-          <p className="text-slate-400 mb-8 leading-relaxed">{error}</p>
+          <p className="text-slate-400 mb-8 leading-relaxed">{error || "Unable to load dataset metadata."}</p>
+          <button 
+             onClick={() => navigate('/app')}
+             className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold transition-all"
+          >
+             Return to Dashboard
+          </button>
         </div>
       </div>
     );
@@ -318,19 +323,6 @@ const AnalysisLab: React.FC = () => {
 
   const allIssues = repairData.issues || [];
   const allRecommendations = repairData.recommendations || [];
-
-  const { setCurrentContext, triggerMessage } = useChat();
-
-  useEffect(() => {
-     if (repairData && preview) {
-         setCurrentContext({
-             healthScore: repairData.health_score,
-             issueCount: allIssues.length,
-             datasetName: preview.filename,
-             context: "Intelligence Workspace"
-         });
-     }
-  }, [repairData, preview, allIssues.length, setCurrentContext]);
 
   return (
     <div className="py-8 space-y-12 transition-all">
@@ -351,13 +343,6 @@ const AnalysisLab: React.FC = () => {
             <p className="text-lg text-slate-400 leading-relaxed font-medium italic mb-6">
               "{generateNarrative()}"
             </p>
-            <button 
-              onClick={() => triggerMessage(`Deep dive into this dataset overview: ${generateNarrative()}. What are the most critical takeaways?`)}
-              className="flex items-center gap-2 px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-full font-bold text-sm shadow-lg shadow-indigo-500/20 transition-all hover:scale-105 active:scale-95"
-            >
-              <MessageSquarePlus className="w-4 h-4" />
-              Ask AI for Deep Analysis
-            </button>
           </div>
         </section>
         

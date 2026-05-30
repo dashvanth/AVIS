@@ -4,16 +4,15 @@ import {
   Zap,
   Activity,
   PieChart,
-  MessageSquare,
-  LogOut,
   Download,
   User,
-  ChevronRight,
+  UploadCloud,
+  LayoutDashboard,
+  Home,
+  ArrowLeft,
 } from "lucide-react";
 import { getDatasets, getDownloadUrl } from "../services/api";
 import type { Dataset } from "../types";
-import FloatingChat from "../components/FloatingChat";
-import { ChatProvider } from "../context/ChatContext";
 
 import { DatasetProvider } from "../context/DatasetContext";
 
@@ -63,7 +62,6 @@ const AppLayout: React.FC = () => {
   };
 
   return (
-    <ChatProvider>
       <div className="flex flex-col h-screen bg-slate-950 overflow-hidden text-slate-200">
         {/* Background Decor */}
         <div className="fixed inset-0 pointer-events-none z-0">
@@ -74,28 +72,39 @@ const AppLayout: React.FC = () => {
         {/* UNIFIED HEADER */}
         <header className="h-16 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur-xl border-b border-white/5 z-50 shrink-0 relative">
           
-          {/* LEFT: Logo & Context */}
-          <div className="flex items-center gap-6">
+          {/* LEFT: Logo, Back & Context */}
+          <div className="flex items-center gap-4">
+            {/* Logo — always goes to dashboard */}
             <button onClick={() => navigate("/app")} className="flex items-center gap-2 group transition-all">
               <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform">
                 <Zap className="w-4 h-4 text-white fill-white" />
               </div>
             </button>
 
+            {/* Back button — only when viewing a dataset */}
+            {id && (
+              <button
+                onClick={() => navigate("/app")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Back
+              </button>
+            )}
+
+            {/* Separator + Dataset name when viewing a dataset */}
             {id && dataset && (
               <>
                 <div className="h-8 w-px bg-white/10" />
-                <div className="flex items-center gap-3">
-                   <div>
-                      <h2 className="text-sm font-bold text-white truncate max-w-[200px]">{dataset.filename}</h2>
-                      <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono">
-                         <span>{dataset.row_count.toLocaleString()} rows</span>
-                         <span className="text-slate-800">•</span>
-                         <span className={`font-bold ${(dataset.quality_score || 0) > 80 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                            Health: {dataset.quality_score || 'N/A'}
-                         </span>
-                      </div>
-                   </div>
+                <div>
+                  <h2 className="text-sm font-bold text-white truncate max-w-[200px]">{dataset.filename}</h2>
+                  <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono">
+                    <span>{dataset.row_count.toLocaleString()} rows</span>
+                    <span className="text-slate-800">•</span>
+                    <span className={`font-bold ${(dataset.quality_score || 0) > 80 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      Health: {dataset.quality_score || 'N/A'}
+                    </span>
+                  </div>
                 </div>
               </>
             )}
@@ -130,34 +139,65 @@ const AppLayout: React.FC = () => {
             </nav>
           )}
 
-          {/* RIGHT: User & Global Actions */}
-          <div className="flex items-center gap-4">
+          {/* RIGHT: Navigation & User Actions */}
+          <div className="flex items-center gap-3">
+            {/* Home button — always visible, goes to landing page */}
+            <button
+              onClick={() => navigate("/")}
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition-colors"
+            >
+              <Home className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Home</span>
+            </button>
+
+            {/* Dashboard home links when no dataset is selected */}
             {!id && (
-               <button onClick={() => navigate("/app")} className="text-xs font-bold text-slate-400 hover:text-white transition-colors">
-                  Dashboard
-               </button>
+              <>
+                <button 
+                  onClick={() => {
+                    const el = document.getElementById('upload-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }} 
+                  className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition-colors"
+                >
+                  <UploadCloud className="w-3.5 h-3.5" />
+                  Upload
+                </button>
+                <button 
+                  onClick={() => {
+                    const grid = document.querySelector('[data-datasets-grid]');
+                    if (grid) grid.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition-colors"
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  My Datasets
+                </button>
+              </>
             )}
             
+            {/* Download button when viewing a dataset */}
             {id && (
-               <button onClick={handleExport} className="hidden sm:flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl border border-white/5 transition-all">
-                  <Download className="w-3.5 h-3.5 text-emerald-400" />
-                  Export
+               <button onClick={handleExport} className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl border border-white/5 transition-all">
+                 <Download className="w-3.5 h-3.5 text-emerald-400" />
+                 Download
                </button>
             )}
 
             <div className="h-8 w-px bg-white/10" />
             
-            <div className="flex items-center gap-3 pl-2">
+            {/* User section */}
+            <div className="flex items-center gap-3">
                <div className="hidden sm:block text-right">
-                  <div className="text-xs font-bold text-white leading-none mb-1">
-                     {localStorage.getItem("userName") || "Guest User"}
-                  </div>
-                  <div className="text-[10px] text-emerald-500 font-bold uppercase tracking-tighter">
-                     Operator
-                  </div>
+                 <div className="text-xs font-bold text-white leading-none mb-1">
+                    {localStorage.getItem("userName") || "Guest"}
+                 </div>
+                 <div className="text-[10px] text-emerald-500 font-bold uppercase tracking-tighter">
+                    Signed In
+                 </div>
                </div>
                <div className="w-8 h-8 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center group cursor-pointer hover:border-indigo-500/40 transition-colors">
-                  <User className="w-4 h-4 text-slate-400 group-hover:text-white" />
+                 <User className="w-4 h-4 text-slate-400 group-hover:text-white" />
                </div>
             </div>
           </div>
@@ -171,11 +211,7 @@ const AppLayout: React.FC = () => {
              </DatasetProvider>
           </div>
         </main>
-
-        {/* PERSISTENT AI ASSISTANT */}
-        <FloatingChat />
       </div>
-    </ChatProvider>
   );
 };
 

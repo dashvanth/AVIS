@@ -73,11 +73,11 @@ def generate_recommendations(dataset_id: int, session: Session):
             if col_type in ["DISCRETE_INT", "CONTINUOUS"]:
                 skew_val = df[col].skew()
                 
-                # Check for high correlation > 0.8
+                # Check for high correlation > 0.8 (ONLY if numeric matrix exists & column is in it)
                 high_corr = False
                 if corr_matrix is not None and col in corr_matrix.columns:
                     correlations = corr_matrix[col].drop(col, errors='ignore')
-                    if (correlations.abs() > 0.8).any():
+                    if not correlations.empty and (correlations.abs() > 0.8).any():
                         high_corr = True
                         
                 if high_corr:

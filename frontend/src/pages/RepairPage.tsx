@@ -627,6 +627,28 @@ const RepairPage: React.FC = () => {
           )}
         </AnimatePresence>
 
+        {/* ════════════════════════════════════════ */}
+        {/* SECTION 6 — NAVIGATE TO VISUALIZE       */}
+        {/* ════════════════════════════════════════ */}
+        <section className="text-center py-8 border-t border-white/5 mt-6">
+          <p className="text-sm text-slate-400 mb-4">
+            {repairedDatasetId
+              ? "Your data has been repaired. Continue to visualize the results."
+              : "Done reviewing? Move to the next step to visualize your data."}
+          </p>
+          <button
+            onClick={() => {
+              window.scrollTo(0, 0);
+              navigate(`/dashboard/${repairedDatasetId || datasetId}/viz`);
+            }}
+            className="inline-flex items-center gap-3 px-10 py-4 bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm uppercase tracking-wider rounded-xl shadow-xl shadow-purple-500/25 transition-all active:scale-95"
+          >
+            <BarChart3 className="w-5 h-5" />
+            Go to Visualize
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </section>
+
       </motion.div>
     </div>
   );

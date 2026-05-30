@@ -13,6 +13,25 @@ from app.core.database import Session
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+def _save_dataframe(df: pd.DataFrame, filepath: str, file_ext: str):
+    """Save DataFrame in the correct format based on file extension."""
+    ext = file_ext.lower()
+    if ext == 'csv':
+        df.to_csv(filepath, index=False)
+    elif ext == 'tsv':
+        df.to_csv(filepath, index=False, sep='\t')
+    elif ext in ('xlsx', 'xls'):
+        df.to_excel(filepath, index=False, engine='openpyxl')
+    elif ext == 'json':
+        df.to_json(filepath, orient='records', indent=2)
+    elif ext == 'xml':
+        df.to_xml(filepath, index=False)
+    elif ext == 'parquet':
+        df.to_parquet(filepath, index=False)
+    else:
+        # Fallback to CSV
+        df.to_csv(filepath, index=False)
+
 def calculate_quality_score(df: pd.DataFrame) -> dict:
     """
     Calculates a multi-dimensional health score with explicit markdown explanation.
@@ -284,6 +303,9 @@ def analyze_file_preview(file: UploadFile):
             if file_ext == 'csv': 
                 try: df = pd.read_csv(temp_path)
                 except UnicodeDecodeError: df = pd.read_csv(temp_path, encoding='latin1')
+            elif file_ext == 'tsv':
+                try: df = pd.read_csv(temp_path, sep='\t')
+                except UnicodeDecodeError: df = pd.read_csv(temp_path, sep='\t', encoding='latin1')
             elif file_ext in ['xlsx', 'xls']: 
                 df = pd.read_excel(temp_path)
             elif file_ext == 'json': 
@@ -294,10 +316,14 @@ def analyze_file_preview(file: UploadFile):
                     except ValueError: df = pd.read_json(temp_path, lines=True) # NDJSON
             elif file_ext == 'xml': 
                 df = pd.read_xml(temp_path)
+            elif file_ext == 'parquet':
+                df = pd.read_parquet(temp_path)
             else: 
-                raise HTTPException(status_code=400, detail="Format not supported by A.V.I.S")
+                raise HTTPException(status_code=400, detail=f"Sorry, we can't read '.{file_ext}' files yet. Please use CSV, Excel, JSON, XML, TSV, or Parquet.")
+        except HTTPException:
+            raise
         except Exception as e:
-            raise HTTPException(status_code=422, detail=f"Orientation Error: {str(e)}")
+            raise HTTPException(status_code=422, detail=f"We couldn't read your file. Please check that it is a valid data file. Error: {str(e)}")
             
         # Execute Forensic Audit
         df_cleaned, audit_log, forensic_stats, forensic_trace, column_types, data_issues = clean_and_audit(df)
@@ -350,6 +376,9 @@ def process_uploaded_file(file: UploadFile, session: Session) -> Dataset:
         if file_ext == 'csv': 
             try: df = pd.read_csv(file_location)
             except UnicodeDecodeError: df = pd.read_csv(file_location, encoding='latin1')
+        elif file_ext == 'tsv':
+            try: df = pd.read_csv(file_location, sep='\t')
+            except UnicodeDecodeError: df = pd.read_csv(file_location, sep='\t', encoding='latin1')
         elif file_ext in ['xlsx', 'xls']: 
             df = pd.read_excel(file_location)
         elif file_ext == 'json': 
@@ -359,16 +388,18 @@ def process_uploaded_file(file: UploadFile, session: Session) -> Dataset:
                 except ValueError: df = pd.read_json(file_location, lines=True)
         elif file_ext == 'xml': 
             df = pd.read_xml(file_location)
+        elif file_ext == 'parquet':
+            df = pd.read_parquet(file_location)
         else:
-             raise HTTPException(status_code=400, detail="Unsupported file format")
+             raise HTTPException(status_code=400, detail=f"Sorry, we can't read '.{file_ext}' files yet. Please use CSV, Excel, JSON, XML, TSV, or Parquet.")
         
         df_cleaned, audit_log, forensic_stats, forensic_trace, column_types, data_issues = clean_and_audit(df)
         quality = calculate_quality_score(df)
         insight_ctx = generate_ingestion_insights(df, quality, filename=file.filename)
         
-        # Save high-performance binary version
-        storage_path = file_location.rsplit('.', 1)[0] + "_processed.csv"
-        df_cleaned.to_csv(storage_path, index=False)
+        # Save processed version in the SAME format as the original
+        storage_path = file_location.rsplit('.', 1)[0] + "_processed." + file_ext
+        _save_dataframe(df_cleaned, storage_path, file_ext)
         
         # GLASS BOX PERSISTENCE: Pack all explanation metadata into the JSON field
         glass_box_metadata = {
@@ -405,4 +436,4 @@ def process_uploaded_file(file: UploadFile, session: Session) -> Dataset:
         return dataset
     except Exception as e:
         if os.path.exists(file_location): os.remove(file_location)
-        raise HTTPException(status_code=400, detail=f"Handshake Aborted: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"We couldn't process your file. Please check that it contains valid data. Error: {str(e)}")

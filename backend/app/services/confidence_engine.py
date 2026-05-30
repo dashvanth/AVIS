@@ -1,7 +1,9 @@
 import pandas as pd
 import numpy as np
 
-def calculate_repair_confidence(column: str, issue_type: str, df: pd.DataFrame, strategy: str, corr_matrix: pd.DataFrame | None = None) -> float:
+from typing import Optional
+
+def calculate_repair_confidence(column: str, issue_type: str, df: pd.DataFrame, strategy: str, corr_matrix: Optional[pd.DataFrame] = None) -> float:
     """
     Quantifies the reliability of a recommended repair using dataset statistics.
     Returns a normalized score between 0 and 1.

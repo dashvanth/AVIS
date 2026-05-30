@@ -9,11 +9,34 @@ from functools import lru_cache
 
 @lru_cache(maxsize=15)
 def _load_dataframe_from_disk(filepath: str) -> pd.DataFrame:
-    """Internal cached loader to prevent redundant disk I/O on large files."""
+    """Internal cached loader — format-aware to handle CSV, Excel, JSON, XML, TSV, Parquet."""
+    ext = filepath.rsplit('.', 1)[-1].lower() if '.' in filepath else 'csv'
     try:
-        return pd.read_csv(filepath)
+        if ext == 'csv':
+            try: return pd.read_csv(filepath)
+            except UnicodeDecodeError: return pd.read_csv(filepath, encoding='latin1')
+        elif ext == 'tsv':
+            try: return pd.read_csv(filepath, sep='\t')
+            except UnicodeDecodeError: return pd.read_csv(filepath, sep='\t', encoding='latin1')
+        elif ext in ('xlsx', 'xls'):
+            return pd.read_excel(filepath)
+        elif ext == 'json':
+            try: return pd.read_json(filepath)
+            except ValueError:
+                try: return pd.read_json(filepath, orient='index')
+                except ValueError: return pd.read_json(filepath, lines=True)
+        elif ext == 'xml':
+            return pd.read_xml(filepath)
+        elif ext == 'parquet':
+            return pd.read_parquet(filepath)
+        else:
+            # Fallback to CSV
+            try: return pd.read_csv(filepath)
+            except UnicodeDecodeError: return pd.read_csv(filepath, encoding='latin1')
     except Exception:
-        return pd.read_csv(filepath, encoding='latin1')
+        # Ultimate fallback
+        try: return pd.read_csv(filepath)
+        except UnicodeDecodeError: return pd.read_csv(filepath, encoding='latin1')
 
 def get_dataframe(dataset_id: int, session: Session) -> pd.DataFrame:
     """

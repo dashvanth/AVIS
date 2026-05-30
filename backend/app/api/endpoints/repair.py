@@ -8,7 +8,7 @@ from app.core.database import get_session
 from app.models.dataset import Dataset
 from app.services.repair_engine import generate_recommendations, simulate_repair, apply_strategy
 from app.services.eda_service import get_dataframe
-from app.services.dataset_service import calculate_quality_score
+from app.services.dataset_service import calculate_quality_score, _save_dataframe
 from datetime import datetime
 
 router = APIRouter()
@@ -140,23 +140,23 @@ def _save_repaired_dataset(
     rows_after: int, 
     session: Session
 ):
-    """Save repaired DataFrame as a new dataset entry and return response."""
-    # Clean filename: originalname_repaired.csv
+    """Save repaired DataFrame as a new dataset entry in the ORIGINAL format."""
     original_name = original_dataset.filename
     clean_base = original_name.rsplit('.', 1)[0].replace('_repaired', '')
-    ext = original_name.rsplit('.', 1)[1] if '.' in original_name else 'csv'
+    # Use the original file_type stored in the DB, not parsed from filename
+    ext = original_dataset.file_type if original_dataset.file_type else 'csv'
     new_filename = f"{clean_base}_repaired.{ext}"
     new_filepath = os.path.join(os.path.dirname(original_dataset.filepath), new_filename)
     
-    # Save repaired dataset
-    df.to_csv(new_filepath, index=False)
+    # Save repaired dataset in original format
+    _save_dataframe(df, new_filepath, ext)
     
     new_quality = calculate_quality_score(df)
     
     new_dataset = Dataset(
         filename=new_filename,
         filepath=new_filepath,
-        file_type="csv",
+        file_type=ext,
         file_size_bytes=os.path.getsize(new_filepath),
         row_count=len(df),
         column_count=len(df.columns),

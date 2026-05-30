@@ -137,6 +137,7 @@ export interface PreviewData {
   score_breakdown?: ScoreFactor[];
   dataset_explanation?: DatasetExplanation;
   readiness?: DatasetReadiness;
+  parent_dataset_id?: number | null;
 }
 
 /**

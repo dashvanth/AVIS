@@ -1,9 +1,21 @@
 import React from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Activity } from 'lucide-react';
 
 const PublicLayout: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const scrollToSection = (sectionId: string) => {
+        if (location.pathname !== '/') {
+            navigate(`/#${sectionId}`);
+        } else {
+            const element = document.getElementById(sectionId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+    };
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 font-sans flex flex-col">
@@ -22,6 +34,25 @@ const PublicLayout: React.FC = () => {
                 </div>
 
                 <div className="flex items-center space-x-6">
+                    <button 
+                        onClick={() => scrollToSection('about')}
+                        className="hidden md:block text-sm font-bold text-slate-400 hover:text-white transition-colors"
+                    >
+                        Vision
+                    </button>
+                    <button 
+                        onClick={() => scrollToSection('features')}
+                        className="hidden md:block text-sm font-bold text-slate-400 hover:text-white transition-colors"
+                    >
+                        Features
+                    </button>
+                    <button 
+                        onClick={() => scrollToSection('workflow')}
+                        className="hidden md:block text-sm font-bold text-slate-400 hover:text-white transition-colors"
+                    >
+                        Workflow
+                    </button>
+                    <div className="w-px h-4 bg-slate-700 hidden md:block mx-2"></div>
                     <button 
                         onClick={() => navigate('/auth')}
                         className="text-sm font-bold text-slate-400 hover:text-white transition-colors"

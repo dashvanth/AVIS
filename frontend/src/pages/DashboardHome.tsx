@@ -5,7 +5,7 @@ import DashboardHint from "../components/DashboardHint";
 import FileUpload from "../components/FileUpload";
 import { getDatasets, deleteDataset } from "../services/api";
 import type { Dataset } from "../types";
-import { Plus, Filter } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 type FilterType = 'all' | 'verified' | 'processing';
@@ -59,78 +59,82 @@ const DashboardHome: React.FC = () => {
       {/* 1. BEGINNER GUIDANCE */}
       <DashboardHint />
 
-      {/* 2. UPLOAD SECTION */}
-      <div className="mb-12">
-        <FileUpload onUploadSuccess={handleUploadSuccess} />
-      </div>
+      {/* 2. UPLOAD + DATASETS SIDE BY SIDE */}
+      <div className="flex flex-col lg:flex-row gap-8 mb-8" id="upload-section">
 
-      {/* 3. DASHBOARD HEADER & CONTROLS */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Data Projects</h2>
-          <p className="text-slate-400 text-sm">Manage and analyze your persistent assets.</p>
+        {/* Left: Upload Area */}
+        <div className="w-full lg:w-[340px] shrink-0">
+          <FileUpload onUploadSuccess={handleUploadSuccess} existingDatasets={datasets} />
         </div>
 
-        <div className="flex items-center gap-4">
-          {/* Functional Filters */}
-          <div className="flex bg-slate-900 border border-white/5 p-1 rounded-xl">
-            <FilterButton
-              label="All"
-              isActive={activeFilter === 'all'}
-              onClick={() => setActiveFilter('all')}
-              count={datasets.length}
-            />
-            <FilterButton
-              label="Verified"
-              isActive={activeFilter === 'verified'}
-              onClick={() => setActiveFilter('verified')}
-              count={datasets.filter(d => d.analyzed).length}
-            />
-            <FilterButton
-              label="Processing"
-              isActive={activeFilter === 'processing'}
-              onClick={() => setActiveFilter('processing')}
-              count={datasets.filter(d => !d.analyzed).length}
-            />
+        {/* Right: Dataset List (fills remaining space) */}
+        <div className="flex-1 min-w-0">
+          {/* Header & Filters */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+            <div>
+              <h2 className="text-xl font-bold text-white tracking-tight">Your Datasets</h2>
+              <p className="text-slate-400 text-xs mt-0.5">All your uploaded datasets are listed here.</p>
+            </div>
+
+            <div className="flex bg-slate-900 border border-white/5 p-1 rounded-xl">
+              <FilterButton
+                label="All"
+                isActive={activeFilter === 'all'}
+                onClick={() => setActiveFilter('all')}
+                count={datasets.length}
+              />
+              <FilterButton
+                label="Verified"
+                isActive={activeFilter === 'verified'}
+                onClick={() => setActiveFilter('verified')}
+                count={datasets.filter(d => d.analyzed).length}
+              />
+              <FilterButton
+                label="Processing"
+                isActive={activeFilter === 'processing'}
+                onClick={() => setActiveFilter('processing')}
+                count={datasets.filter(d => !d.analyzed).length}
+              />
+            </div>
           </div>
+
+          {/* Dataset Grid */}
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+            </div>
+          ) : filteredDatasets.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="py-16 text-center border border-dashed border-white/10 rounded-2xl bg-white/5"
+            >
+              <div className="w-14 h-14 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Plus className="w-7 h-7 text-slate-500" />
+              </div>
+              <h3 className="text-base font-bold text-white mb-1">
+                {activeFilter === 'all' ? "No datasets yet" : "No datasets match this filter"}
+              </h3>
+              <p className="text-slate-400 max-w-sm mx-auto text-xs">
+                {activeFilter === 'all'
+                  ? "Upload a file on the left to get started."
+                  : "Try switching filters to see other datasets."}
+              </p>
+            </motion.div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-10">
+              {filteredDatasets.map((dataset) => (
+                <ProjectCard
+                  key={dataset.id}
+                  dataset={dataset}
+                  onResume={() => { }}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
-
-      {/* 3. PROJECT GRID */}
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-        </div>
-      ) : filteredDatasets.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="py-24 text-center border border-dashed border-white/10 rounded-3xl bg-white/5"
-        >
-          <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Plus className="w-8 h-8 text-slate-500" />
-          </div>
-          <h3 className="text-lg font-bold text-white mb-2">
-            {activeFilter === 'all' ? "No projects yet" : "No projects match this filter"}
-          </h3>
-          <p className="text-slate-400 max-w-md mx-auto text-sm">
-            {activeFilter === 'all'
-              ? "Use the upload area above to create your first project."
-              : "Try switching filters to see other projects."}
-          </p>
-        </motion.div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
-          {filteredDatasets.map((dataset) => (
-            <ProjectCard
-              key={dataset.id}
-              dataset={dataset}
-              onResume={() => { }} // Not used by new card, it has internal navigation
-              onDelete={handleDelete}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 };
@@ -139,7 +143,7 @@ const DashboardHome: React.FC = () => {
 const FilterButton = ({ label, isActive, onClick, count }: any) => (
   <button
     onClick={onClick}
-    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${isActive
+    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${isActive
         ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/20"
         : "text-slate-400 hover:text-white hover:bg-white/5"
       }`}

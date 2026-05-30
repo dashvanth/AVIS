@@ -58,11 +58,9 @@ def preview_existing_dataset(dataset_id: int, session: Session = Depends(get_ses
         raise HTTPException(status_code=404, detail="Relational asset binary missing.")
 
     try:
-        # Load raw data with encoding fallback
-        try:
-            df = pd.read_csv(dataset.filepath)
-        except UnicodeDecodeError:
-            df = pd.read_csv(dataset.filepath, encoding='latin-1')
+        # Use the format-aware loader (handles CSV, Excel, JSON, XML, etc.)
+        from app.services.eda_service import _load_dataframe_from_disk
+        df = _load_dataframe_from_disk(dataset.filepath).copy()
         
         # 1. SIMPLE FORENSIC METRICS: Terminology simplified for beginners
         null_mask = df.isnull().any(axis=1)
@@ -137,6 +135,7 @@ def preview_existing_dataset(dataset_id: int, session: Session = Depends(get_ses
             "dtypes": df.dtypes.astype(str).to_dict(),
             "quality_score": calculate_quality_score(df),
             "processing_log": dataset.processing_log,
+            "parent_dataset_id": dataset.parent_dataset_id,
             
             # Glass Box Metadata (Unpacked for Frontend)
             "column_types": glass_box.get("column_types", []),

@@ -12,8 +12,11 @@ import {
   Heart,
   BarChart3,
   Radar,
+  Zap,
+  ArrowRight,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate, useParams } from "react-router-dom";
 import { useDatasetContext } from "../context/DatasetContext";
 import { StatMetricCard } from "../components/StatMetricCard";
 import { DataIssueCard } from "../components/DataIssueCard";
@@ -86,6 +89,8 @@ const AnalyzePage: React.FC = () => {
     repairData,
     qualityData,
   } = useDatasetContext();
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
 
   const [activeDrilldown, setActiveDrilldown] = useState<{
     type: "rows" | "columns" | "missing" | "duplicates",
@@ -141,26 +146,32 @@ const AnalyzePage: React.FC = () => {
 
   // ─── Issue Click Handler ───
   const handleIssueClick = (issue: any) => {
-    if (!preview?.full_data) return;
+    if (!preview) return;
+    const allData = preview.full_data || [];
+    const anomalyData = (preview as any).anomaly_data || [];
 
     let filteredRows: any[] = [];
     const issueType = issue.issue || "";
 
     if (issueType === "Missing Values") {
-      const indices = issue.affected_row_indices || [];
-      if (indices.length > 0 && preview.full_data.length > 0) {
-        filteredRows = indices
-          .filter((idx: number) => idx < preview.full_data.length)
-          .map((idx: number) => ({ _row_index: idx, ...preview.full_data[idx] }));
-      }
+      // 1st: Try to get rows from anomaly_data (backend pre-filtered rows with nulls)
+      const col = issue.column;
+      filteredRows = anomalyData
+        .map((row: any, idx: number) => ({ _row_index: idx, ...row }))
+        .filter((row: any) =>
+          row[col] === null || row[col] === undefined || row[col] === ""
+        );
+
+      // 2nd: If anomaly data didn't have enough, also check full_data
       if (filteredRows.length === 0) {
-        filteredRows = preview.full_data
+        filteredRows = allData
           .map((row: any, idx: number) => ({ _row_index: idx, ...row }))
           .filter((row: any) =>
-            row[issue.column] === null || row[issue.column] === undefined || row[issue.column] === ""
+            row[col] === null || row[col] === undefined || row[col] === ""
           );
       }
     } else if (issueType === "Duplicate Rows") {
+      // Use the backend-provided sample rows directly
       if (issue.sample_rows && issue.sample_rows.length > 0) {
         filteredRows = issue.sample_rows.map((row: any, idx: number) => ({
           _row_index: issue.duplicate_row_indices?.[idx] ?? idx,
@@ -168,10 +179,16 @@ const AnalyzePage: React.FC = () => {
         }));
       }
     } else if (issueType === "Incorrect Data Type") {
-      const indices = issue.affected_row_indices || [];
-      filteredRows = indices
-        .filter((idx: number) => idx < preview.full_data.length)
-        .map((idx: number) => ({ _row_index: idx, ...preview.full_data[idx] }));
+      // Show rows from full_data where the value is non-numeric text
+      const col = issue.column;
+      filteredRows = allData
+        .map((row: any, idx: number) => ({ _row_index: idx, ...row }))
+        .filter((row: any) => {
+          const val = row[col];
+          if (val === null || val === undefined) return false;
+          return isNaN(Number(val));
+        })
+        .slice(0, 20);
     }
 
     setActiveIssue({
@@ -517,6 +534,26 @@ const AnalyzePage: React.FC = () => {
             <h2 className="text-2xl font-bold text-white tracking-wide">Dataset Preview</h2>
           </div>
           {datasetId && <DataPreviewTable datasetId={datasetId} />}
+        </section>
+
+        {/* ═══════════════════════════════════════════════ */}
+        {/* SECTION 6: NEXT STEP — REPAIR                  */}
+        {/* ═══════════════════════════════════════════════ */}
+        <section className="text-center py-8">
+          <p className="text-sm text-slate-400 mb-4">
+            Done reviewing? Move to the next step to fix any issues found.
+          </p>
+          <button
+            onClick={() => {
+              window.scrollTo(0, 0);
+              navigate(`/dashboard/${id}/repair`);
+            }}
+            className="inline-flex items-center gap-3 px-10 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm uppercase tracking-wider rounded-xl shadow-xl shadow-indigo-500/25 transition-all active:scale-95"
+          >
+            <Zap className="w-5 h-5" />
+            Go to Repair Page
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </section>
 
       </motion.div>
